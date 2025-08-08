@@ -9,24 +9,26 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Les champs autorisés en "mass assignement"
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'phone',
+        'location',
+        'role',  // Ajouté pour gérer client/admin
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Champs à cacher lors de la sérialisation (ex: en JSON)
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -34,15 +36,28 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Caster certains champs automatiquement
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+
+    /**
+     * (Optionnel) helper pour vérifier si l'utilisateur est admin
+     */
+    public function isAdmin(): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->role === 'admin';
+    }
+
+    /**
+     * (Optionnel) helper pour vérifier si l'utilisateur est client
+     */
+    public function isClient(): bool
+    {
+        return $this->role === 'client';
     }
 }

@@ -7,11 +7,18 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/client/dashboard', function () {
+        return 'Bienvenue, client !';
+    })->name('client.dashboard');
+
+    Route::get('/admin/dashboard', function () {
+        return 'Bienvenue, admin !';
+    })->name('admin.dashboard');
+
 });
+
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
