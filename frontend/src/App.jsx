@@ -10,6 +10,10 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import VerifyEmail from './pages/auth/VerifyEmail'
 import ResetPassword from './pages/auth/ResetPassword'
 
+// Pages principales
+import Home from './pages/Home'
+import Contact from './pages/Contact'
+
 function App() {
     return (
         <AuthProvider>
@@ -25,22 +29,13 @@ function App() {
                     {/* Pages avec layout */}
                     <Route path="/" element={
                         <Layout>
-                            <div className="text-center py-20">
-                                <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                                    Bienvenue sur SoniShop
-                                </h1>
-                                <p className="text-lg text-gray-600 mb-8">
-                                    Votre e-commerce moderne en construction
-                                </p>
-                                <div className="space-x-4">
-                                    <a href="/login" className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition">
-                                        Se connecter
-                                    </a>
-                                    <a href="/register" className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">
-                                        S'inscrire
-                                    </a>
-                                </div>
-                            </div>
+                            <Home />
+                        </Layout>
+                    } />
+                    
+                    <Route path="/contact" element={
+                        <Layout>
+                            <Contact />
                         </Layout>
                     } />
 

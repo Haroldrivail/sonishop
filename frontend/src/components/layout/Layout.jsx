@@ -1,6 +1,7 @@
 import React from 'react'
 import Header from './Header'
 import Footer from './Footer'
+import ScrollProgress from '../ui/ScrollProgress'
 
 function Layout({ children }) {
   return (
@@ -10,6 +11,7 @@ function Layout({ children }) {
         {children}
       </main>
       <Footer />
+      <ScrollProgress />
     </div>
   )
 }

@@ -14,4 +14,6 @@ export {
   ArrowRightIcon,
   ArrowLeftIcon,
   CheckIcon,
+  MailIcon,
+  ArrowUpIcon,
 } from "./CommonIcons";

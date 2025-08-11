@@ -18,7 +18,7 @@ function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/" className="text-2xl font-bold text-blue-600">
+            <Link to="/" className="text-2xl font-bold text-soni-navy">
               SoniShop
             </Link>
           </div>
@@ -27,25 +27,25 @@ function Header() {
           <nav className="hidden md:flex space-x-8">
             <Link 
               to="/" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition"
+              className="text-gray-700 hover:text-soni-orange px-3 py-2 rounded-md text-sm font-medium transition"
             >
               Accueil
             </Link>
             <Link 
               to="/products" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition"
+              className="text-gray-700 hover:text-soni-orange px-3 py-2 rounded-md text-sm font-medium transition"
             >
               Produits
             </Link>
             <Link 
               to="/categories" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition"
+              className="text-gray-700 hover:text-soni-orange px-3 py-2 rounded-md text-sm font-medium transition"
             >
               Catégories
             </Link>
             <Link 
               to="/contact" 
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition"
+              className="text-gray-700 hover:text-soni-orange px-3 py-2 rounded-md text-sm font-medium transition"
             >
               Contact
             </Link>
