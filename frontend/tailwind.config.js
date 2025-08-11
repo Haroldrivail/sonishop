@@ -7,34 +7,52 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+        // Couleurs Sonitelecom
+        soni: {
+          navy: '#1a237e',      // Bleu foncé principal
+          blue: '#3949ab',      // Bleu moyen
+          orange: '#ff6d00',    // Orange principal
+          'orange-light': '#ff8f00', // Orange clair
+          'orange-dark': '#e65100',  // Orange foncé
+          gray: '#37474f',      // Gris foncé
+          'gray-light': '#607d8b', // Gris clair
         },
-        secondary: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
+        primary: {
+          50: '#e8eaf6',
+          100: '#c5cae9',
+          200: '#9fa8da',
+          300: '#7986cb',
+          400: '#5c6bc0',
+          500: '#3f51b5',  // Bleu principal Soni
+          600: '#3949ab',
+          700: '#303f9f',
+          800: '#283593',
+          900: '#1a237e',  // Navy Soni
+        },
+        accent: {
+          50: '#fff3e0',
+          100: '#ffe0b2',
+          200: '#ffcc80',
+          300: '#ffb74d',
+          400: '#ffa726',
+          500: '#ff9800',
+          600: '#ff8f00',  // Orange Soni
+          700: '#ff6d00',
+          800: '#e65100',
+          900: '#bf360c',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        sans: ['Inter', 'Roboto', 'ui-sans-serif', 'system-ui'],
       },
+      backgroundImage: {
+        'gradient-soni': 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+        'gradient-soni-orange': 'linear-gradient(135deg, #ff6d00 0%, #ff8f00 100%)',
+      },
+      boxShadow: {
+        'soni': '0 10px 25px rgba(26, 35, 126, 0.1)',
+        'soni-lg': '0 20px 40px rgba(26, 35, 126, 0.15)',
+      }
     },
   },
 }
