@@ -56,3 +56,14 @@
     }
   }
 }
+
+
+/* Couleurs de la charte graphique SoniShop */
+:root {
+  --soni-navy: #1a237e;
+  --soni-navy-light: #3949ab;
+  --soni-navy-dark: #0d1757;
+  --soni-orange: #ff6d00;
+  --soni-orange-light: #ff9800;
+  --soni-orange-dark: #e65100;
+}

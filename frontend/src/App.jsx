@@ -24,6 +24,7 @@ import Categories from './pages/Categories'
 import Favorites from './pages/Favorites'
 import Orders from './pages/Orders'
 import Profile from './pages/Profile'
+import AdminDashboard from './pages/admin/Dashboard'
 
 function App() {
     return (
@@ -105,6 +106,14 @@ function App() {
                             </Layout>
                         </ProtectedRoute>
                     } />
+
+                    {/* Dashboard Admin */}
+                    <Route path="/admin/Dashboard" element={
+                        <ProtectedRoute>
+                            <AdminDashboard />
+                        </ProtectedRoute>
+                    } />
+
 
                     {/* Route 404 */}
                     <Route path="*" element={

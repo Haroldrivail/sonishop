@@ -10,6 +10,8 @@ export default {
         // Couleurs Sonitelecom
         soni: {
           navy: '#1a237e',      // Bleu foncé principal
+          'navy-light': '#3949ab', // Bleu navy clair
+          'navy-dark': '#0d1757',  // Bleu navy très foncé
           blue: '#3949ab',      // Bleu moyen
           orange: '#ff6d00',    // Orange principal
           'orange-light': '#ff8f00', // Orange clair
