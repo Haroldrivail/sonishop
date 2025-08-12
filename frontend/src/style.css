@@ -55,6 +55,27 @@
       opacity: 0;
     }
   }
+
+  @keyframes shrink {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
+  }
+
+  .animate-in {
+    animation: slideInFromRight 0.3s ease-out;
+  }
+
+  .animate-out {
+    animation: slideOutToRight 0.3s ease-in;
+  }
+
+  .slide-in-from-right-full {
+    animation: slideInFromRight 0.3s ease-out;
+  }
 }
 
 

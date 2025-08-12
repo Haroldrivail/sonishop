@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { ToastProvider } from './context/ToastContext'
+import { NotificationProvider } from './context/NotificationContext'
 import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import NotificationContainer from './components/notifications/NotificationContainer'
 
 // Pages d'authentification
 import Login from './pages/auth/Login'
@@ -20,6 +22,8 @@ import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import CheckoutNew from './pages/CheckoutNew'
+import OrderTracking from './pages/OrderTracking'
 import Categories from './pages/Categories'
 import Favorites from './pages/Favorites'
 import Orders from './pages/Orders'
@@ -31,8 +35,10 @@ function App() {
         <AuthProvider>
             <CartProvider>
                 <ToastProvider>
-                    <Router>
-                <Routes>
+                    <NotificationProvider>
+                        <Router>
+                            <NotificationContainer />
+                            <Routes>
                     {/* Pages d'authentification sans layout */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -73,7 +79,13 @@ function App() {
 
                     <Route path="/checkout" element={
                         <Layout>
-                            <Checkout />
+                            <CheckoutNew />
+                        </Layout>
+                    } />
+
+                    <Route path="/order-tracking" element={
+                        <Layout>
+                            <OrderTracking />
                         </Layout>
                     } />
 
@@ -131,6 +143,7 @@ function App() {
                     } />
                     </Routes>
                 </Router>
+            </NotificationProvider>
             </ToastProvider>
         </CartProvider>
     </AuthProvider>

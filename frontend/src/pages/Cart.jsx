@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useCart } from '../context/CartContext'
 import {
     ShoppingCartIcon,
     TrashIcon,
@@ -12,27 +13,14 @@ import {
 } from '../components/icons'
 
 const Cart = () => {
-    const [cartItems, setCartItems] = useState([
-        {
-            id: 1,
-            name: 'iPhone 15 Pro Max',
-            price: 850000,
-            quantity: 1,
-            image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200',
-            color: 'Titane naturel',
-            storage: '256 GB'
-        },
-        {
-            id: 2,
-            name: 'AirPods Pro 2',
-            price: 163000,
-            quantity: 2,
-            image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=200',
-            color: 'Blanc',
-            storage: null
-        }
-    ])
-
+    const { 
+        cart, 
+        cartItemsCount, 
+        cartTotal, 
+        updateCartQuantity, 
+        removeFromCart 
+    } = useCart()
+    
     const [promoCode, setPromoCode] = useState('')
     const [appliedPromo, setAppliedPromo] = useState(null)
 
@@ -46,19 +34,11 @@ const Cart = () => {
     }
 
     const updateQuantity = (id, newQuantity) => {
-        if (newQuantity <= 0) {
-            removeItem(id)
-            return
-        }
-        setCartItems(items =>
-            items.map(item =>
-                item.id === id ? { ...item, quantity: newQuantity } : item
-            )
-        )
+        updateCartQuantity(id, newQuantity)
     }
 
     const removeItem = (id) => {
-        setCartItems(items => items.filter(item => item.id !== id))
+        removeFromCart(id)
     }
 
     const applyPromoCode = () => {
@@ -79,7 +59,10 @@ const Cart = () => {
         setPromoCode('')
     }
 
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const subtotal = cart.reduce((sum, item) => {
+        const price = item.salePrice || item.price
+        return sum + (price * item.quantity)
+    }, 0)
     const shipping = subtotal > 65000 ? 0 : 6500 // Livraison gratuite à partir de 65 000 FCFA
     const promoDiscount = appliedPromo
         ? appliedPromo.type === 'percentage'
@@ -88,7 +71,7 @@ const Cart = () => {
         : 0
     const total = subtotal + shipping - promoDiscount
 
-    if (cartItems.length === 0) {
+    if (cart.length === 0) {
         return (
             <div className="min-h-screen bg-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -97,14 +80,28 @@ const Cart = () => {
                             <ShoppingCartIcon className="w-12 h-12 text-gray-400" />
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">Votre panier est vide</h2>
-                        <p className="text-gray-600 mb-8">Découvrez nos produits et ajoutez-les à votre panier</p>
-                        <Link
-                            to="/products"
-                            className="inline-flex items-center px-6 py-3 bg-soni-navy text-white rounded-lg hover:bg-soni-navy/90 transition-colors font-semibold"
-                        >
-                            Voir nos produits
-                            <ArrowRightIcon className="ml-2 w-5 h-5" />
-                        </Link>
+                        <p className="text-gray-600 mb-8">
+                            Découvrez nos produits et ajoutez-les à votre panier pour voir vos articles ici.
+                            <br />
+                            <span className="text-sm text-gray-500 mt-2 block">
+                                💡 Astuce : Utilisez les boutons "Ajouter au panier" sur les pages produits
+                            </span>
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Link
+                                to="/products"
+                                className="inline-flex items-center px-6 py-3 bg-soni-navy text-primary rounded-lg hover:bg-soni-navy/90 transition-colors font-semibold"
+                            >
+                                Voir nos produits
+                                <ArrowRightIcon className="ml-2 w-5 h-5" />
+                            </Link>
+                            <Link
+                                to="/categories"
+                                className="inline-flex items-center px-6 py-3 border border-soni-navy text-soni-navy rounded-lg hover:bg-soni-navy/5 transition-colors font-semibold"
+                            >
+                                Parcourir les catégories
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -128,7 +125,7 @@ const Cart = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Mon panier</h1>
                         </div>
                         <div className="text-sm text-gray-600">
-                            {cartItems.length} article{cartItems.length > 1 ? 's' : ''}
+                            {cart.length} article{cart.length > 1 ? 's' : ''}
                         </div>
                     </div>
                 </div>
@@ -138,7 +135,7 @@ const Cart = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Cart Items */}
                     <div className="lg:col-span-2 space-y-4">
-                        {cartItems.map(item => (
+                        {cart.map(item => (
                             <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                 <div className="flex items-start gap-4">
                                     {/* Product Image */}
@@ -156,12 +153,25 @@ const Cart = () => {
                                             {item.name}
                                         </h3>
                                         <div className="text-sm text-gray-600 space-y-1">
-                                            <p>Couleur: {item.color}</p>
-                                            {item.storage && <p>Stockage: {item.storage}</p>}
+                                            {item.category && (
+                                                <p>Catégorie: {item.category}</p>
+                                            )}
+                                            {item.description && (
+                                                <p className="text-xs text-gray-500 line-clamp-2">
+                                                    {item.description}
+                                                </p>
+                                            )}
                                         </div>
-                                        <p className="price-fcfa-medium text-soni-navy mt-2">
-                                            {formatPrice(item.price)}
-                                        </p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <p className="price-fcfa-medium text-soni-navy">
+                                                {formatPrice(item.salePrice || item.price)}
+                                            </p>
+                                            {item.salePrice && item.price !== item.salePrice && (
+                                                <p className="text-sm text-gray-400 line-through">
+                                                    {formatPrice(item.price)}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Quantity Controls */}
@@ -198,7 +208,7 @@ const Cart = () => {
                                         Sous-total ({item.quantity} {item.quantity > 1 ? 'articles' : 'article'})
                                     </span>
                                     <span className="price-fcfa-medium text-gray-900">
-                                        {formatPrice(item.price * item.quantity)}
+                                        {formatPrice((item.salePrice || item.price) * item.quantity)}
                                     </span>
                                 </div>
                             </div>

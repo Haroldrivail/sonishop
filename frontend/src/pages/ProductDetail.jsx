@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useCart } from '../context/CartContext'
+import { useNotification } from '../context/NotificationContext'
 import { 
   ChevronLeftIcon,
   HeartIcon, 
@@ -15,12 +17,14 @@ import {
 
 const ProductDetail = () => {
   const { id } = useParams()
+  const { addToCart, toggleWishlist, isInWishlist } = useCart()
+  const { showCartNotification, showSuccess, showError } = useNotification()
   const [product, setProduct] = useState(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [loading, setLoading] = useState(true)
-  const [isFavorite, setIsFavorite] = useState(false)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   // Données simulées d'un produit
   const mockProduct = {
@@ -113,6 +117,42 @@ const ProductDetail = () => {
     const newQuantity = quantity + change
     if (newQuantity >= 1 && newQuantity <= product.stockCount) {
       setQuantity(newQuantity)
+    }
+  }
+
+  const handleAddToCart = async () => {
+    if (!product.inStock || isAddingToCart) return
+    
+    setIsAddingToCart(true)
+    
+    try {
+      // Simulation d'un délai pour montrer l'état de chargement
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Ajouter le produit au panier avec la quantité sélectionnée
+      const success = addToCart(product, quantity)
+      
+      if (success) {
+        // Afficher la notification de succès avec le produit
+        showCartNotification(product, quantity)
+        
+        // Optionnel: Réinitialiser la quantité à 1 après ajout
+        // setQuantity(1)
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout au panier:', error)
+      showError('Erreur lors de l\'ajout au panier')
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
+
+  const handleToggleFavorite = () => {
+    const wasAdded = toggleWishlist(product)
+    if (wasAdded) {
+      showSuccess('Produit ajouté aux favoris')
+    } else {
+      showSuccess('Produit retiré des favoris')
     }
   }
 
@@ -307,19 +347,20 @@ const ProductDetail = () => {
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <button
-                  disabled={!product.inStock}
+                  onClick={handleAddToCart}
+                  disabled={!product.inStock || isAddingToCart}
                   className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
                 >
                   <ShoppingCartIcon className="w-5 h-5" />
-                  Ajouter au panier
+                  {isAddingToCart ? 'Ajout en cours...' : 'Ajouter au panier'}
                 </button>
                 <button
-                  onClick={() => setIsFavorite(!isFavorite)}
+                  onClick={handleToggleFavorite}
                   className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <HeartIcon
-                    className={`w-6 h-6 ${isFavorite ? 'text-red-500' : 'text-gray-400'}`}
-                    filled={isFavorite}
+                    className={`w-6 h-6 ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400'}`}
+                    filled={isInWishlist(product.id)}
                   />
                 </button>
                 <button className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
