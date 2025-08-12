@@ -3,8 +3,8 @@
 import { Routes, Route } from 'react-router-dom';
 
 import Welcome from './pages/Welcome.jsx';
-import Login from './Login.jsx';
-import Register from './Register.jsx';
+import Login from './pages/auth/Login.jsx';
+import Register from './pages/auth/Register.jsx';
 import Dashboard from './pages/admin/dashboard.jsx';
 import Home from './pages/client/Home.jsx';
 import GestionProduits from './pages/admin/GestionProduits.jsx';

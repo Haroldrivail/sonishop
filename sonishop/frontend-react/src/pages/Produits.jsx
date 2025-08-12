@@ -9,7 +9,19 @@ function Produits() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get('http://public.test/api/products')
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      setMessage('Vous devez être connecté pour voir les produits.');
+      setLoading(false);
+      return;
+    }
+
+    axios.get('http://public.test/api/products', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
       .then(res => {
         setProducts(res.data);
         setLoading(false);
@@ -51,7 +63,12 @@ function Produits() {
                 <img
                   src={`http://public.test/storage/${product.image}`}
                   alt={product.name}
-                  style={{ width: '100%', height: '180px', objectFit: 'cover', marginBottom: '10px' }}
+                  style={{
+                    width: '100%',
+                    height: '180px',
+                    objectFit: 'cover',
+                    marginBottom: '10px'
+                  }}
                 />
               )}
               <h3>{product.name}</h3>
