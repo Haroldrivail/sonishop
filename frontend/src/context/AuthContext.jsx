@@ -20,7 +20,7 @@ const initialState = {
     name: 'Utilisateur Test',
     email: 'test@sonishop.com',
     role: 'user'
-  }, // Utilisateur de test par défaut
+  }, 
   token: localStorage.getItem('token') || 'demo-token',
   loading: false,
   error: null,

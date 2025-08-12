@@ -12,25 +12,6 @@
   }
 }
 
-@layer components {
-  /* Styles pour les prix en FCFA */
-  /* .price-fcfa {
-    font-feature-settings: 'tnum' 1; 
-    letter-spacing: -0.015em; 
-  }
-  
-  .price-fcfa-large {
-    @apply price-fcfa text-2xl font-bold;
-  }
-  
-  .price-fcfa-medium {
-    @apply price-fcfa text-lg font-semibold;
-  }
-  
-  .price-fcfa-small {
-    @apply price-fcfa text-base font-medium;
-  } */
-}
 
 @layer utilities {
   /* Animations pour les toasts */

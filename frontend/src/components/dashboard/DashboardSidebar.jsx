@@ -38,7 +38,7 @@ const DashboardSidebar = ({
         { id: 'settings', label: 'Paramètres', icon: CogIcon }
     ]
 
-    const items = sidebarItems.length > 0 ? sidebarItems : defaultSidebarItems
+    const items = defaultSidebarItems
 
     const handleItemClick = (itemId) => {
         setActiveTab(itemId)
@@ -127,13 +127,13 @@ const SidebarContent = ({
     onClose,
     isMobile
 }) => (
-    <div className="flex-1 flex flex-col min-h-0 bg-gradient-to-b from-soni-navy via-soni-navy to-soni-navy-dark border-r-2 border-soni-orange/20 relative">
+    <div className="flex-1 flex flex-col min-h-0 bg-soni-navy-dark relative">
         {/* Effet de brillance subtile */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent pointer-events-none"></div>
+        {/* <div className="absolute inset-0 bg-transparent pointer-events-none"></div> */}
 
         <div className="flex-1 flex flex-col pt-6 pb-4 relative z-10">
             {/* Header avec logo et bouton de fermeture/collapse */}
-            <div className="flex items-center justify-between px-6 mb-8">
+            <div className="flex items-center justify-between px-3.5 mb-8">
                 <div className={`flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
                     {/* Logo SoniShop amélioré */}
                     <div className="relative">
@@ -171,7 +171,7 @@ const SidebarContent = ({
                 ) : (
                     <button
                         onClick={onToggleCollapse}
-                        className="absolute right-[-10px] top-2.5 rounded-xl text-blue-500 hover:bg-soni-orange/20 transition-all duration-200 backdrop-blur-sm border border-white/10 hover:border-soni-orange/30 h-8 w-8 flex items-center justify-center z-50"
+                        className="absolute right-[-16px] top-2.5 rounded-xl text-blue-500 transition-all duration-200 backdrop-blur-sm border border-blue-400 hover:border-blue-500 h-8 w-8 flex items-center justify-center z-50 cursor-pointer"
                     >
                         {isCollapsed ? (
                             <ChevronRightIcon className="h-4 w-4" />
@@ -207,11 +207,11 @@ const SidebarContent = ({
                             key={item.id}
                             onClick={() => onItemClick(item.id)}
                             className={`
-                                group flex items-center px-4 py-3.5 text-sm font-semibold rounded-2xl w-full text-left 
-                                transition-all duration-300 ease-out relative overflow-hidden
+                                group flex items-center px-4 py-3 text-sm font-semibold rounded-2xl w-full text-left 
+                                transition-all duration-300 ease-out relative
                                 ${isActive
-                                    ? 'bg-orange-500 text-white shadow-2xl shadow-soni-orange/40 ring-2 ring-white/20 scale-[1.02] transform'
-                                    : 'text-gray-300 hover:bg-gradient-to-r hover:from-white/5 hover:to-white/10 hover:text-white hover:shadow-lg hover:shadow-soni-navy/50 backdrop-blur-sm border border-transparent hover:border-white/10'
+                                    ? 'bg-blue-400 text-white shadow-2xl shadow-blue-100 ring-2 ring-white/20  transform'
+                                    : 'hover:bg-blue-100 text-blue-300 hover:text-blue-500 border border-transparent'
                                 }
                                 ${isCollapsed ? 'justify-center px-3' : ''}
                             `}
@@ -228,17 +228,17 @@ const SidebarContent = ({
                             <Icon
                                 className={`
                                     flex-shrink-0 h-5 w-5 transition-all duration-300 relative z-10
-                                    ${isActive ? 'text-white drop-shadow-sm' : 'text-gray-400 group-hover:text-gray-200 group-hover:scale-110'}
+                                    ${isActive ? 'text-white drop-shadow-sm' : 'text-gray-400 group-hover:text-blue-400'}
                                     ${isCollapsed ? '' : 'mr-3'}
                                 `}
                             />
-                            {showLabels && (
-                                <span className={`truncate font-semibold relative z-10 tracking-wide ${isActive ? 'text-white' : 'text-gray-200'}`}>{item.label}</span>
+                            {!isCollapsed && (
+                                <span className={`truncate font-semibold relative z-10 tracking-wide ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-400'}`}>{item.label}</span>
                             )}
 
                             {/* Indicateur actif pour la version collapsed amélioré */}
                             {isCollapsed && isActive && (
-                                <div className="absolute left-0 w-1.5 h-10 bg-orange-400 rounded-r-full shadow-lg shadow-soni-orange/50"></div>
+                                <div className="absolute left-0 w-1.5 h-10 rounded-r-full shadow-lg shadow-soni-orange/50"></div>
                             )}
                         </button>
                     )
