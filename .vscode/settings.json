@@ -9,9 +9,9 @@
             "server": "localhost",
             "port": 3306,
             "driver": "MySQL",
-            "username": "root",
+            "name": "DB-Sonishop",
             "database": "sonishop_db",
-            "name": "DB SONISHOP",
+            "username": "root",
             "askForPassword": true
         }
     ]
