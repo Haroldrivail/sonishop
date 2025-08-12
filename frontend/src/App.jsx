@@ -13,6 +13,10 @@ import ResetPassword from './pages/auth/ResetPassword'
 // Pages principales
 import Home from './pages/Home'
 import Contact from './pages/Contact'
+import Products from './pages/Products'
+import ProductDetail from './pages/ProductDetail'
+import Cart from './pages/Cart'
+import Categories from './pages/Categories'
 
 function App() {
     return (
@@ -36,6 +40,30 @@ function App() {
                     <Route path="/contact" element={
                         <Layout>
                             <Contact />
+                        </Layout>
+                    } />
+
+                    <Route path="/products" element={
+                        <Layout>
+                            <Products />
+                        </Layout>
+                    } />
+
+                    <Route path="/products/:id" element={
+                        <Layout>
+                            <ProductDetail />
+                        </Layout>
+                    } />
+
+                    <Route path="/cart" element={
+                        <Layout>
+                            <Cart />
+                        </Layout>
+                    } />
+
+                    <Route path="/categories" element={
+                        <Layout>
+                            <Categories />
                         </Layout>
                     } />
 
