@@ -15,11 +15,16 @@ const AUTH_ACTIONS = {
 
 // État initial
 const initialState = {
-  user: null,
-  token: localStorage.getItem('token'),
+  user: {
+    id: 1,
+    name: 'Utilisateur Test',
+    email: 'test@sonishop.com',
+    role: 'user'
+  }, // Utilisateur de test par défaut
+  token: localStorage.getItem('token') || 'demo-token',
   loading: false,
   error: null,
-  isAuthenticated: false
+  isAuthenticated: true // Connecté par défaut pour les tests
 }
 
 // Reducer pour gérer l'état d'authentification

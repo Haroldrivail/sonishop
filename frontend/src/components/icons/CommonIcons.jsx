@@ -158,48 +158,55 @@ export function ArrowUpIcon({ className = "h-5 w-5" }) {
   )
 }
 
-
-export function EyeIcon({ className = "h-5 w-5 text-gray-400" }) {
+export function ArrowPathIcon({ className = "h-5 w-5" }) {
   return (
-    <svg 
-      className={className} 
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor"
-    >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth={2} 
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
-      />
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth={2} 
-        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
-      />
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
     </svg>
   )
 }
 
-export function EyeOffIcon({ className = "h-5 w-5 text-gray-400" }) {
-  return (
-    <svg 
-      className={className} 
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor"
-    >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth={2} 
-        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" 
-      />
-    </svg>
-  )
-}
+// export function EyeIcon({ className = "h-5 w-5 text-gray-400" }) {
+//   return (
+//     <svg 
+//       className={className} 
+//       fill="none" 
+//       viewBox="0 0 24 24" 
+//       stroke="currentColor"
+//     >
+//       <path 
+//         strokeLinecap="round" 
+//         strokeLinejoin="round" 
+//         strokeWidth={2} 
+//         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+//       />
+//       <path 
+//         strokeLinecap="round" 
+//         strokeLinejoin="round" 
+//         strokeWidth={2} 
+//         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
+//       />
+//     </svg>
+//   )
+// }
+
+// export function EyeOffIcon({ className = "h-5 w-5 text-gray-400" }) {
+//   return (
+//     <svg 
+//       className={className} 
+//       fill="none" 
+//       viewBox="0 0 24 24" 
+//       stroke="currentColor"
+//     >
+//       <path 
+//         strokeLinecap="round" 
+//         strokeLinejoin="round" 
+//         strokeWidth={2} 
+//         d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" 
+//       />
+//     </svg>
+//   )
+// }
 
 export const ShieldCheckIcon = ({ className = "w-6 h-6", ...props }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
@@ -271,6 +278,31 @@ export const ClockIcon = ({ className = "w-6 h-6", ...props }) => (
 export const StarIcon = ({ className = "w-5 h-5", ...props }) => (
   <svg className={className} {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.563.563 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5Z" />
+  </svg>
+)
+
+export const EyeIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg className={className} {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+
+export const EyeOffIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg className={className} {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 11-4.243-4.243m4.242 4.242L9.88 9.88" />
+  </svg>
+)
+
+export const CreditCardIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg className={className} {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+  </svg>
+)
+
+export const LockClosedIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg className={className} {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
   </svg>
 )
 

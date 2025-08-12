@@ -9,8 +9,6 @@ import { usePagination } from '../hooks/usePagination'
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [cart, setCart] = useState([])
-  const [wishlist, setWishlist] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Données simulées des produits avec données enrichies
@@ -257,34 +255,6 @@ const Products = () => {
     }
   }, [updateFilters, resetPagination, setSearchParams])
 
-  // Gestion du panier
-  const handleAddToCart = useCallback((product) => {
-    setCart(prev => {
-      const existingItem = prev.find(item => item.id === product.id)
-      if (existingItem) {
-        return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      }
-      return [...prev, { ...product, quantity: 1 }]
-    })
-    
-    // Notification (vous pouvez ajouter une toast notification ici)
-    console.log('Produit ajouté au panier:', product.name)
-  }, [])
-
-  // Gestion de la wishlist
-  const handleToggleWishlist = useCallback((productId) => {
-    setWishlist(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId)
-      }
-      return [...prev, productId]
-    })
-  }, [])
-
   const stats = getFilterStats()
 
   if (loading) {
@@ -317,9 +287,6 @@ const Products = () => {
       {/* Grille de produits */}
       <ProductGrid
         products={paginatedItems}
-        onAddToCart={handleAddToCart}
-        onToggleWishlist={handleToggleWishlist}
-        wishlist={wishlist}
       />
 
       {/* Pagination */}

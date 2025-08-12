@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useCart } from '../../context/CartContext'
 import { ShoppingCartIcon, ChevronDownIcon, MenuIcon } from '../icons'
 
 function Header() {
   const { user, isAuthenticated, logout } = useAuth()
+  const { cartItemsCount } = useCart()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogout = () => {
@@ -56,9 +58,11 @@ function Header() {
             {/* Panier */}
             <Link to="/cart" className="relative text-gray-700 hover:text-blue-600 transition">
               <ShoppingCartIcon />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
-              </span>
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemsCount}
+                </span>
+              )}
             </Link>
 
             {isAuthenticated ? (

@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useCart } from '../../context/CartContext'
+import { useToast } from '../../context/ToastContext'
 import { 
   StarIcon, 
   ShoppingCartIcon, 
@@ -10,8 +12,10 @@ import {
   ClockIcon
 } from '../icons'
 
-const ProductGrid = ({ products, onAddToCart, onToggleWishlist, wishlist = [] }) => {
+const ProductGrid = ({ products }) => {
   const [viewMode, setViewMode] = useState('grid') // 'grid' ou 'list'
+  const { addToCart, toggleWishlist, isInWishlist } = useCart()
+  const { success, info } = useToast()
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -39,11 +43,27 @@ const ProductGrid = ({ products, onAddToCart, onToggleWishlist, wishlist = [] })
   }
 
   const ProductCard = ({ product }) => {
-    const isInWishlist = wishlist.includes(product.id)
+    const isProductInWishlist = isInWishlist(product.id)
     const hasDiscount = product.salePrice && product.salePrice < product.price
     const discountPercent = hasDiscount 
       ? Math.round(((product.price - product.salePrice) / product.price) * 100)
       : 0
+
+    const handleAddToCart = () => {
+      const success_add = addToCart(product)
+      if (success_add) {
+        success(`${product.name} ajouté au panier`)
+      }
+    }
+
+    const handleToggleWishlist = () => {
+      const added = toggleWishlist(product)
+      if (added) {
+        info(`${product.name} ajouté aux favoris`)
+      } else {
+        info(`${product.name} retiré des favoris`)
+      }
+    }
 
     if (viewMode === 'list') {
       return (
@@ -85,9 +105,9 @@ const ProductGrid = ({ products, onAddToCart, onToggleWishlist, wishlist = [] })
                   </div>
                   
                   <button
-                    onClick={() => onToggleWishlist(product.id)}
+                    onClick={handleToggleWishlist}
                     className={`p-2 rounded-full transition-colors ${
-                      isInWishlist 
+                      isProductInWishlist 
                         ? 'text-red-500 bg-red-50' 
                         : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                     }`}
@@ -133,7 +153,7 @@ const ProductGrid = ({ products, onAddToCart, onToggleWishlist, wishlist = [] })
                     <EyeIcon className="w-5 h-5" />
                   </Link>
                   <button
-                    onClick={() => onAddToCart(product)}
+                    onClick={handleAddToCart}
                     className="bg-soni-orange text-white px-4 py-2 rounded-lg hover:bg-soni-orange/90 transition-colors flex items-center gap-2"
                   >
                     <ShoppingCartIcon className="w-4 h-4" />
@@ -177,9 +197,9 @@ const ProductGrid = ({ products, onAddToCart, onToggleWishlist, wishlist = [] })
           {/* Actions hover */}
           <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={() => onToggleWishlist(product.id)}
+              onClick={handleToggleWishlist}
               className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
-                isInWishlist 
+                isProductInWishlist 
                   ? 'text-red-500 bg-white/90' 
                   : 'text-gray-600 bg-white/90 hover:text-red-500'
               }`}
@@ -198,7 +218,7 @@ const ProductGrid = ({ products, onAddToCart, onToggleWishlist, wishlist = [] })
           {/* Bouton d'achat rapide */}
           <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={() => onAddToCart(product)}
+              onClick={handleAddToCart}
               className="w-full bg-soni-orange text-white py-2 px-4 rounded-lg hover:bg-soni-orange/90 transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingCartIcon className="w-4 h-4" />

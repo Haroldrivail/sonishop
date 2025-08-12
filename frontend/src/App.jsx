@@ -1,7 +1,10 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { CartProvider } from './context/CartContext'
+import { ToastProvider } from './context/ToastContext'
 import Layout from './components/layout/Layout'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Pages d'authentification
 import Login from './pages/auth/Login'
@@ -16,12 +19,18 @@ import Contact from './pages/Contact'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
+import Checkout from './pages/Checkout'
 import Categories from './pages/Categories'
+import Favorites from './pages/Favorites'
+import Orders from './pages/Orders'
+import Profile from './pages/Profile'
 
 function App() {
     return (
         <AuthProvider>
-            <Router>
+            <CartProvider>
+                <ToastProvider>
+                    <Router>
                 <Routes>
                     {/* Pages d'authentification sans layout */}
                     <Route path="/login" element={<Login />} />
@@ -61,10 +70,40 @@ function App() {
                         </Layout>
                     } />
 
+                    <Route path="/checkout" element={
+                        <Layout>
+                            <Checkout />
+                        </Layout>
+                    } />
+
                     <Route path="/categories" element={
                         <Layout>
                             <Categories />
                         </Layout>
+                    } />
+
+                    <Route path="/favorites" element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Favorites />
+                            </Layout>
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/orders" element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Orders />
+                            </Layout>
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/profile" element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Profile />
+                            </Layout>
+                        </ProtectedRoute>
                     } />
 
                     {/* Route 404 */}
@@ -81,9 +120,11 @@ function App() {
                             </div>
                         </Layout>
                     } />
-                </Routes>
-            </Router>
-        </AuthProvider>
+                    </Routes>
+                </Router>
+            </ToastProvider>
+        </CartProvider>
+    </AuthProvider>
     )
 }
 

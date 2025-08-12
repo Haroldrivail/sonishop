@@ -1,6 +1,8 @@
 export {
   EyeIcon,
   EyeOffIcon,
+  CreditCardIcon,
+  LockClosedIcon,
   ShoppingCartIcon,
   HeartIcon,
   UserIcon,
@@ -32,4 +34,5 @@ export {
   TagIcon,
   ClockIcon,
   StarIcon,
+  ArrowPathIcon,
 } from "./CommonIcons";
