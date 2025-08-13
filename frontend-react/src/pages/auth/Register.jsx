@@ -16,6 +16,7 @@ function Register() {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [formErrors, setFormErrors] = useState({})
+    const [successMessage, setSuccessMessage] = useState('')
     const { register, loading, error, clearError } = useAuth()
     const navigate = useNavigate()
 
@@ -26,7 +27,6 @@ function Register() {
             [name]: value
         }))
 
-        // Effacer l'erreur pour ce champ spécifique
         if (formErrors[name]) {
             setFormErrors(prev => ({
                 ...prev,
@@ -34,7 +34,6 @@ function Register() {
             }))
         }
 
-        // Effacer l'erreur générale quand l'utilisateur tape
         if (error) clearError()
     }
 
@@ -77,8 +76,12 @@ function Register() {
         if (!validateForm()) return
 
         const result = await register(formData)
+
         if (result.success) {
-            navigate('/verify-email')
+            setSuccessMessage('Compte créé avec succès ! Redirection vers la page de connexion...')
+            setTimeout(() => {
+                navigate('/login')
+            }, 2000)
         }
     }
 
@@ -95,6 +98,12 @@ function Register() {
                         </svg>
                         {error}
                     </div>
+                </div>
+            )}
+
+            {successMessage && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6 shadow-sm">
+                    {successMessage}
                 </div>
             )}
 
@@ -266,29 +275,24 @@ function Register() {
                             <>
                                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                                 </svg>
                                 Création en cours...
                             </>
                         ) : (
-                            <span className="flex items-center">
+                            <>
                                 Créer mon compte
-                                <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                            </span>
+                                <ArrowRightIcon className="ml-2 h-5 w-5" />
+                            </>
                         )}
                     </button>
 
-                    <div className="text-center">
-                        <p className="text-sm text-soni-gray">
-                            Déjà un compte ?{' '}
-                            <Link
-                                to="/login"
-                                className="font-semibold text-accent-600 hover:text-accent-700 transition-colors"
-                            >
-                                Se connecter
-                            </Link>
-                        </p>
-                    </div>
+                    <p className="text-center text-soni-navy text-sm">
+                        Vous avez déjà un compte ?{' '}
+                        <Link to="/login" className="text-accent-600 font-semibold hover:text-accent-700 transition-colors">
+                            Connectez-vous
+                        </Link>
+                    </p>
                 </div>
             </form>
         </AuthLayout>

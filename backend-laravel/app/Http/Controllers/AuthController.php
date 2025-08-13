@@ -9,57 +9,76 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    // ✅ Enregistrement d’un nouvel utilisateur
     public function register(Request $request)
     {
         $request->validate([
-           'name' => 'required|string|max:255',
-           'email' => 'required|string|email|unique:users',
-           'phone' => 'nullable|string|max:20',
-           'location' => 'nullable|string|max:255',
-           'password' => 'required|string|confirmed|min:6',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|unique:users',
+            'phone' => 'nullable|string|max:20',
+            'location' => 'nullable|string|max:255',
+            'password' => 'required|string|confirmed|min:6',
         ]);
 
         $user = User::create([
-           'name' => $request->name,
-           'email' => $request->email,
-           'phone' => $request->phone,
-           'location' => $request->location,
-           'password' => Hash::make($request->password),
-            'role' => 'user', // ici on force le rôle
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'phone'    => $request->phone,
+            'location' => $request->location,
+            'password' => Hash::make($request->password),
+            'role'     => 'user', // Défaut
         ]);
 
-        return response()->json(['message' => 'User created'], 201);
+        return response()->json([
+            'message' => 'Utilisateur créé avec succès',
+            'user'    => $user,
+        ], 201);
     }
 
+    // ✅ Connexion d’un utilisateur
     public function login(Request $request)
     {
         $request->validate([
-           'email' => 'required|string|email',
-           'password' => 'required|string',
+            'email'    => 'required|email',
+            'password' => 'required|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => ['Les identifiants sont incorrects.'],
             ]);
         }
 
-        $token = $user->createToken('token-name')->plainTextToken;
+        // ✅ Créer un token d'accès API
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user]);
+        return response()->json([
+            'message' => 'Connexion réussie',
+            'token'   => $token,
+            'user' => [
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'is_admin' => $user->role === 'admin', // 👈 important
+    ],
+        ]);
     }
 
+    // ✅ Déconnexion
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out']);
+        return response()->json([
+            'message' => 'Déconnexion réussie'
+        ]);
     }
 
+    // ✅ Récupérer l'utilisateur connecté
     public function user(Request $request)
     {
-        return $request->user();
+        return response()->json($request->user());
     }
 }
