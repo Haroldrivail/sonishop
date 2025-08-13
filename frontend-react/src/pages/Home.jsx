@@ -5,8 +5,10 @@ import ProductSection from '../components/sections/ProductSection'
 import FeaturedCategories from '../components/sections/FeaturedCategories'
 import SpecialOffers from '../components/sections/SpecialOffers'
 import TestimonialCarousel from '../components/sections/TestimonialCarousel'
+import { useAuth } from '../context/AuthContext'  // importe ton hook d'auth
 
 const Home = () => {
+   const { isAuthenticated } = useAuth(); // récupère l'état d'authentification
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
 
@@ -225,6 +227,7 @@ const Home = () => {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
+                 {!isAuthenticated && (
                 <Link
                   to="/register"
                   className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-soni-orange to-orange-500 hover:from-soni-orange/90 hover:to-orange-500/90 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform"
@@ -232,6 +235,7 @@ const Home = () => {
                   Commencer maintenant
                   <ArrowRightIcon className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
+                 )}
                 <Link
                   to="/contact"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/20 hover:border-white/40 text-white font-semibold rounded-xl transition-all duration-200 hover:bg-white/10"

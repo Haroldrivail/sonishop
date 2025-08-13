@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { useEffect } from 'react'; // (au début du fichier si pas encore importé)
+import axios from '../../api/axios'
 import {
     ShoppingBagIcon,
     PlusIcon,
@@ -14,76 +16,39 @@ import {
 } from '../../components/icons'
 
 const ProductsManagement = () => {
-    const [products, setProducts] = useState([
-        {
-            id: 1,
-            name: 'iPhone 15 Pro Max',
-            category: 'Smartphones',
-            price: 850000,
-            stock: 25,
-            status: 'active',
-            image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=100',
-            description: 'Dernier modèle iPhone avec caméra avancée',
-            rating: 4.8,
-            sales: 45
-        },
-        {
-            id: 2,
-            name: 'Samsung Galaxy S24',
-            category: 'Smartphones',
-            price: 700000,
-            stock: 18,
-            status: 'active',
-            image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=100',
-            description: 'Smartphone Android haut de gamme',
-            rating: 4.6,
-            sales: 32
-        },
-        {
-            id: 3,
-            name: 'MacBook Air M2',
-            category: 'Ordinateurs',
-            price: 850000,
-            stock: 12,
-            status: 'active',
-            image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=100',
-            description: 'Ordinateur portable ultra-fin',
-            rating: 4.9,
-            sales: 28
-        },
-        {
-            id: 4,
-            name: 'AirPods Pro 2',
-            category: 'Audio',
-            price: 163000,
-            stock: 0,
-            status: 'out_of_stock',
-            image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=100',
-            description: 'Écouteurs sans fil avec réduction de bruit',
-            rating: 4.7,
-            sales: 67
-        },
-        {
-            id: 5,
-            name: 'iPad Pro 12.9"',
-            category: 'Tablettes',
-            price: 680000,
-            stock: 8,
-            status: 'low_stock',
-            image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=100',
-            description: 'Tablette professionnelle avec écran Liquid Retina',
-            rating: 4.8,
-            sales: 19
-        }
-    ])
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [sortBy, setSortBy] = useState('name');
+    const [sortOrder, setSortOrder] = useState('asc');
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
-    const [searchTerm, setSearchTerm] = useState('')
-    const [filterCategory, setFilterCategory] = useState('all')
-    const [filterStatus, setFilterStatus] = useState('all')
-    const [sortBy, setSortBy] = useState('name')
-    const [sortOrder, setSortOrder] = useState('asc')
-    const [showAddModal, setShowAddModal] = useState(false)
-    const [selectedProduct, setSelectedProduct] = useState(null)
+    // ⬇️ ICI le useEffect
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await axios.get('/products');
+                const data = response.data;
+                const fetchedProducts = Array.isArray(data) ? data : data.data;
+                setProducts(fetchedProducts);
+            } catch (error) {
+                if (error.response && error.response.status === 401) {
+                    setError("Non autorisé. Veuillez vous reconnecter.");
+                } else {
+                    setError("Erreur lors de la récupération des produits.");
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
 
     const categories = ['all', 'Smartphones', 'Ordinateurs', 'Audio', 'Tablettes', 'Accessoires']
     const statuses = ['all', 'active', 'out_of_stock', 'low_stock', 'inactive']
@@ -324,78 +289,89 @@ const ProductsManagement = () => {
                                                 }}
                                             />
                                             <div className="h-12 w-12 rounded-lg bg-gray-100 items-center justify-center hidden">
-                                                <PhotoIcon className="h-6 w-6 text-gray-400" />
+                                                <PhotoIcon className="h-6 w-6 text-gray-400 mx-auto" />
                                             </div>
                                             <div className="ml-4">
-                                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                                <div className="text-gray-900 font-medium">{product.name}</div>
                                                 <div className="text-sm text-gray-500">{product.description}</div>
-                                                <div className="flex items-center mt-1">
-                                                    <StarIcon className="h-4 w-4 text-yellow-400 fill-current" />
-                                                    <span className="text-sm text-gray-500 ml-1">{product.rating}</span>
-                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                            {product.category}
-                                        </span>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">{product.category}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-soni-orange">
+                                        {formatPrice(product.price)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">{product.stock}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-700 flex items-center space-x-1">
+                                        <StarIcon className="h-4 w-4 text-yellow-400" />
+                                        <span>{product.rating}</span>
+                                        <span className="text-sm text-gray-400">({product.sales})</span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-semibold text-gray-900">
-                                            {formatPrice(product.price)}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{product.stock} unités</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{product.sales} ventes</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(product.status)}`}>
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(product.status)}`}>
                                             {getStatusText(product.status)}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex items-center justify-end space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors">
-                                                <EyeIcon className="h-4 w-4" />
-                                            </button>
-                                            <button className="text-soni-orange hover:text-accent-700 p-1 rounded transition-colors">
-                                                <PencilIcon className="h-4 w-4" />
-                                            </button>
-                                            <button className="text-red-600 hover:text-red-800 p-1 rounded transition-colors">
-                                                <TrashIcon className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                        <button
+                                            className="text-soni-orange hover:text-soni-navy transition-colors"
+                                            title="Modifier"
+                                            onClick={() => setSelectedProduct(product)}
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                            className="text-red-600 hover:text-red-800 transition-colors"
+                                            title="Supprimer"
+                                            onClick={() => alert(`Supprimer ${product.name}`)}
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
+                            {filteredProducts.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="text-center py-6 text-gray-500">
+                                        Aucun produit trouvé.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Pagination */}
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
-                        Affichage de <span className="font-medium">1</span> à <span className="font-medium">{filteredProducts.length}</span> sur <span className="font-medium">{products.length}</span> produits
-                    </div>
-                    <div className="flex space-x-2">
-                        <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
-                            Précédent
-                        </button>
-                        <button className="px-3 py-1 bg-soni-navy text-white rounded-md text-sm hover:bg-soni-navy-dark transition-colors">
-                            1
-                        </button>
-                        <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
-                            Suivant
+            {/* Modal Ajouter ou Modifier (placeholder) */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h2 className="text-lg font-bold mb-4">Ajouter un produit (fonctionnalité à venir)</h2>
+                        <button
+                            onClick={() => setShowAddModal(false)}
+                            className="mt-4 px-4 py-2 bg-soni-orange text-white rounded-lg hover:bg-accent-700"
+                        >
+                            Fermer
                         </button>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Modal Modifier (placeholder) */}
+            {selectedProduct && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h2 className="text-lg font-bold mb-4">Modifier le produit (fonctionnalité à venir)</h2>
+                        <p className="mb-4">Produit: {selectedProduct.name}</p>
+                        <button
+                            onClick={() => setSelectedProduct(null)}
+                            className="mt-4 px-4 py-2 bg-soni-orange text-white rounded-lg hover:bg-accent-700"
+                        >
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
