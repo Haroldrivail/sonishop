@@ -197,7 +197,7 @@ const CustomersManagement = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <h1 className="text-xl font-bold text-gray-900 flex items-center">
                         <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center mr-3">
                             <UserIcon className="h-5 w-5 text-white" />
                         </div>
@@ -217,7 +217,7 @@ const CustomersManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Total Clients</p>
-                            <p className="text-2xl font-bold text-gray-900">{totalCustomers}</p>
+                            <p className="text-xl font-bold text-gray-900">{totalCustomers}</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                             <UserIcon className="h-6 w-6 text-blue-600" />
@@ -228,7 +228,7 @@ const CustomersManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Clients Actifs</p>
-                            <p className="text-2xl font-bold text-green-600">{activeCustomers}</p>
+                            <p className="text-xl font-bold text-green-600">{activeCustomers}</p>
                         </div>
                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                             <UserIcon className="h-6 w-6 text-green-600" />
@@ -239,7 +239,7 @@ const CustomersManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Clients VIP</p>
-                            <p className="text-2xl font-bold text-purple-600">{vipCustomers}</p>
+                            <p className="text-xl font-bold text-purple-600">{vipCustomers}</p>
                         </div>
                         <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                             <UserIcon className="h-6 w-6 text-purple-600" />
@@ -250,7 +250,7 @@ const CustomersManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Chiffre d'Affaires</p>
-                            <p className="text-2xl font-bold text-soni-orange">{formatPrice(totalRevenue)}</p>
+                            <p className="text-xl font-bold text-soni-orange">{formatPrice(totalRevenue)}</p>
                         </div>
                         <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                             <CurrencyDollarIcon className="h-6 w-6 text-orange-600" />

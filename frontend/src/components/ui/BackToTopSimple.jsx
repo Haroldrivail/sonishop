@@ -40,7 +40,7 @@ const BackToTopSimple = () => {
   return (
     <button
       onClick={scrollToTop}
-      className={`fixed cursor-pointer bottom-8 right-8 z-50 p-3 bg-soni-navy hover:bg-soni-orange text-white rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 ${
+      className={`fixed cursor-pointer bottom-8 right-8 z-50 p-2 bg-blue-300 hover:bg-blue-200 text-white rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 ${
         isVisible 
           ? 'translate-y-0 opacity-100 scale-100' 
           : 'translate-y-12 opacity-0 scale-90 pointer-events-none'

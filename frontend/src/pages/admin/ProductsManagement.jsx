@@ -169,7 +169,7 @@ const ProductsManagement = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <h1 className="text-xl font-bold text-gray-900 flex items-center">
                         <div className="w-8 h-8 bg-gradient-to-br from-soni-orange to-accent-700 rounded-lg flex items-center justify-center mr-3">
                             <ShoppingBagIcon className="h-5 w-5 text-white" />
                         </div>
@@ -192,7 +192,7 @@ const ProductsManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Total Produits</p>
-                            <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                            <p className="text-xl font-bold text-gray-900">{products.length}</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                             <ShoppingBagIcon className="h-6 w-6 text-blue-600" />
@@ -203,7 +203,7 @@ const ProductsManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Produits Actifs</p>
-                            <p className="text-2xl font-bold text-green-600">
+                            <p className="text-xl font-bold text-green-600">
                                 {products.filter(p => p.status === 'active').length}
                             </p>
                         </div>
@@ -216,7 +216,7 @@ const ProductsManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Rupture Stock</p>
-                            <p className="text-2xl font-bold text-red-600">
+                            <p className="text-xl font-bold text-red-600">
                                 {products.filter(p => p.status === 'out_of_stock').length}
                             </p>
                         </div>
@@ -229,7 +229,7 @@ const ProductsManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Valeur Stock</p>
-                            <p className="text-2xl font-bold text-soni-orange">
+                            <p className="text-xl font-bold text-soni-orange">
                                 {formatPrice(products.reduce((total, p) => total + (p.price * p.stock), 0))}
                             </p>
                         </div>

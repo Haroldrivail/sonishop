@@ -26,7 +26,7 @@ const ScrollProgress = () => {
     })
   }
 
-  const circumference = 2 * Math.PI * 24 // rayon de 24
+  const circumference = 2 * Math.PI * 15
   const strokeDasharray = circumference
   const strokeDashoffset = circumference - (scrollProgress / 100) * circumference
 
@@ -40,19 +40,19 @@ const ScrollProgress = () => {
     >
       <button
         onClick={scrollToTop}
-        className="group relative w-16 h-16 bg-white hover:bg-gray-50 text-soni-navy rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-soni-navy/20"
+        className="group relative w-12 h-12 bg-white hover:bg-gray-50 text-soni-navy rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-soni-navy/20"
         aria-label="Retour en haut"
       >
         {/* Cercle de progression SVG */}
         <svg 
-          className="absolute inset-0 w-16 h-16 transform -rotate-90" 
-          viewBox="0 0 56 56"
+          className="absolute inset-0 w-12 h-12 transform -rotate-90" 
+          viewBox="0 0 48 48"
         >
           {/* Cercle de fond */}
           <circle
-            cx="28"
-            cy="28"
-            r="24"
+            cx="24"
+            cy="24"
+            r="20"
             stroke="currentColor"
             strokeWidth="2"
             fill="none"
@@ -60,9 +60,9 @@ const ScrollProgress = () => {
           />
           {/* Cercle de progression */}
           <circle
-            cx="28"
-            cy="28"
-            r="24"
+            cx="24"
+            cy="24"
+            r="20"
             stroke="currentColor"
             strokeWidth="2"
             fill="none"
@@ -77,7 +77,7 @@ const ScrollProgress = () => {
 
         {/* Icône centrale */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <ArrowUpIcon className="w-6 h-6 group-hover:animate-bounce transition-all duration-300" />
+          <ArrowUpIcon className="w-5 h-5 group-hover:animate-bounce transition-all duration-300" />
         </div>
 
         {/* Effet de brillance */}

@@ -237,7 +237,7 @@ const CheckoutNew = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Panier vide</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Panier vide</h2>
                     <p className="text-gray-600 mb-6">Votre panier est vide. Ajoutez des produits avant de continuer.</p>
                     <Link
                         to="/products"
@@ -264,7 +264,7 @@ const CheckoutNew = () => {
                                 <ChevronLeftIcon className="mr-2 w-5 h-5" />
                                 Retour au panier
                             </Link>
-                            <h1 className="text-2xl font-bold text-gray-900">Finaliser ma commande</h1>
+                            <h1 className="text-xl font-bold text-gray-900">Finaliser ma commande</h1>
                         </div>
                         <div className="flex items-center text-sm text-gray-600">
                             <LockClosedIcon className="w-4 h-4 mr-1" />
@@ -452,7 +452,7 @@ const CheckoutNew = () => {
                                                 <div className="w-full h-full rounded-full bg-white scale-50"></div>
                                             )}
                                         </div>
-                                        <span className="text-2xl mr-3">{option.icon}</span>
+                                        <span className="text-xl mr-3">{option.icon}</span>
                                         <div className="flex-1">
                                             <div className="font-medium">{option.label}</div>
                                             <div className="text-sm text-gray-600">{option.time}</div>
@@ -693,7 +693,7 @@ const CheckoutNew = () => {
                                 <h3 className="font-semibold mb-3">🚚 Livraison</h3>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center">
-                                        <span className="text-2xl mr-2">{deliveryOptions[deliveryMode].icon}</span>
+                                        <span className="text-xl mr-2">{deliveryOptions[deliveryMode].icon}</span>
                                         <div>
                                             <div className="font-medium">{deliveryOptions[deliveryMode].label}</div>
                                             <div className="text-sm text-gray-600">

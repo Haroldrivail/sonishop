@@ -265,7 +265,7 @@ const Checkout = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Panier vide</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Panier vide</h2>
                     <p className="text-gray-600 mb-6">Votre panier est vide. Ajoutez des produits avant de continuer.</p>
                     <Link
                         to="/products"
@@ -292,7 +292,7 @@ const Checkout = () => {
                                 <ChevronLeftIcon className="mr-2 w-5 h-5" />
                                 Retour au panier
                             </Link>
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-xl font-bold text-gray-900">
                                 {step === 4 ? 'Commande confirmée' : step === 3 ? 'Finaliser ma commande' : 'Passer ma commande'}
                             </h1>
                         </div>
@@ -642,7 +642,7 @@ const Checkout = () => {
                         <div className="bg-gradient-to-r from-soni-navy to-blue-700 text-white rounded-xl p-6 mb-8">
                             <div className="text-center">
                                 <CheckIcon className="w-12 h-12 mx-auto mb-4 text-green-300" />
-                                <h2 className="text-2xl font-bold mb-2">Vérifiez votre commande</h2>
+                                <h2 className="text-xl font-bold mb-2">Vérifiez votre commande</h2>
                                 <p className="text-blue-100">
                                     Vos informations de paiement ont été validées. Veuillez vérifier les détails avant de finaliser.
                                 </p>
@@ -828,7 +828,7 @@ const Checkout = () => {
                                 <CheckIcon className="w-8 h-8 text-green-600" />
                             </div>
                             
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Commande confirmée !</h2>
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Commande confirmée !</h2>
                             <p className="text-gray-600 mb-6">
                                 Votre commande a été enregistrée avec succès. Vous recevrez un email de confirmation à l'adresse {shippingInfo.email}.
                             </p>

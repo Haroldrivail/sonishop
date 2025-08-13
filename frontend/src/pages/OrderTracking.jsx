@@ -113,7 +113,7 @@ const OrderTracking = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Commande introuvable</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Commande introuvable</h2>
                     <Link 
                         to="/products" 
                         className="text-soni-navy hover:text-soni-navy/80"
@@ -141,7 +141,7 @@ const OrderTracking = () => {
                                 <ChevronLeftIcon className="mr-2 w-5 h-5" />
                                 Retour à la boutique
                             </Link>
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-xl font-bold text-gray-900">
                                 Suivi de commande #{order.id}
                             </h1>
                         </div>
@@ -157,7 +157,7 @@ const OrderTracking = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
                     <div className="text-center">
                         <div className="text-6xl mb-4">{deliveryStatus.icon}</div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">
                             {deliveryStatus.title}
                         </h2>
                         <p className="text-gray-600 mb-6">
@@ -202,7 +202,7 @@ const OrderTracking = () => {
                                 🚚 Mode de livraison
                             </h3>
                             <div className="flex items-center">
-                                <div className="text-2xl mr-3">
+                                <div className="text-xl mr-3">
                                     {order.deliveryMode === 'standard' && '🚛'}
                                     {order.deliveryMode === 'express' && '🚀'}
                                     {order.deliveryMode === 'pickup' && '🏪'}

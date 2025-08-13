@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
+import Tooltip from '../ui/Tooltip'
 import {
     HomeIcon,
     ShoppingBagIcon,
@@ -95,7 +96,7 @@ const DashboardSidebar = ({
         <div className={`
             hidden lg:flex lg:flex-shrink-0 relative z-30
             transition-all duration-300 ease-in-out
-            ${isCollapsed ? 'w-20' : 'w-72'}
+            ${isCollapsed ? 'w-20' : 'w-60'}
         `}>
             <div className="flex flex-col w-full shadow-2xl shadow-soni-navy/20">
                 <SidebarContent
@@ -138,7 +139,7 @@ const SidebarContent = ({
                     {/* Logo SoniShop amélioré */}
                     <div className="relative">
                         <div className="w-12 h-12 bg-gradient-to-br  rounded-2xl flex items-center justify-center">
-                            <Link to="/" className="text-2xl font-bold">
+                            <Link to="/" className="text-xl font-bold">
                                 <img src="/sonitelecom_logo.png" alt="SoniShop" />
                             </Link>
                         </div>
@@ -148,7 +149,7 @@ const SidebarContent = ({
                     {showLabels && (
                         <div className="ml-4">
                             <h1 className="text-white text-xl font-black tracking-tight">
-                                <Link to="/" className="text-2xl font-bold text-blue-500 hover:text-blue-600 transition-colors">
+                                <Link to="/" className="text-xl font-bold text-blue-500 hover:text-blue-600 transition-colors">
                                     SoniShop
                                 </Link>
                             </h1>
@@ -191,7 +192,7 @@ const SidebarContent = ({
                             <div key={item.id} className="py-3">
                                 {!isCollapsed && (
                                     <div className="relative">
-                                        <div className=" "></div>
+                                        <div className="w-full h-1 bg-gray-100 rounded-full"></div>
                                         <div className="absolute inset-x-0 top-0 h-px"></div>
                                     </div>
                                 )}
@@ -203,61 +204,67 @@ const SidebarContent = ({
                     const isActive = activeTab === item.id
 
                     return (
-                        <button
+                        <Tooltip 
                             key={item.id}
-                            onClick={() => onItemClick(item.id)}
-                            className={`
-                                group flex items-center px-4 py-3 text-sm font-semibold rounded-2xl w-full text-left 
-                                transition-all duration-300 ease-out relative
-                                ${isActive
-                                    ? 'bg-blue-400 text-white shadow-2xl shadow-blue-100 ring-2 ring-white/20  transform'
-                                    : 'hover:bg-blue-100 text-blue-300 hover:text-blue-500 border border-transparent'
-                                }
-                                ${isCollapsed ? 'justify-center px-3' : ''}
-                            `}
-                            title={isCollapsed ? item.label : ''}
+                            content={item.label}
+                            position="right"
+                            disabled={!isCollapsed}
                         >
-                            {/* Background animé pour l'état actif */}
-                            {isActive && (
-                                <>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 animate-pulse"></div>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                                </>
-                            )}
-
-                            <Icon
+                            <button
+                                onClick={() => onItemClick(item.id)}
                                 className={`
-                                    flex-shrink-0 h-5 w-5 transition-all duration-300 relative z-10
-                                    ${isActive ? 'text-white drop-shadow-sm' : 'text-gray-400 group-hover:text-blue-400'}
-                                    ${isCollapsed ? '' : 'mr-3'}
+                                    group flex items-center px-4 py-3 text-sm font-semibold rounded-2xl w-full text-left 
+                                    transition-all duration-300 ease-out relative
+                                    ${isActive
+                                        ? 'bg-blue-400 text-white shadow-2xl shadow-blue-100 ring-2 ring-white/20  transform'
+                                        : 'hover:bg-blue-100 text-blue-300 hover:text-blue-500 border border-transparent'
+                                    }
+                                    ${isCollapsed ? 'justify-center px-3' : ''}
                                 `}
-                            />
-                            {!isCollapsed && (
-                                <span className={`truncate font-semibold relative z-10 tracking-wide ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-400'}`}>{item.label}</span>
-                            )}
+                            >
+                                {/* Background animé pour l'état actif */}
+                                {isActive && (
+                                    <>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 animate-pulse"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                                    </>
+                                )}
 
-                            {/* Indicateur actif pour la version collapsed amélioré */}
-                            {isCollapsed && isActive && (
-                                <div className="absolute left-0 w-1.5 h-10 rounded-r-full shadow-lg shadow-soni-orange/50"></div>
-                            )}
-                        </button>
+                                <Icon
+                                    className={`
+                                        flex-shrink-0 h-5 w-5 transition-all duration-300 relative z-10
+                                        ${isActive ? 'text-white drop-shadow-sm' : 'text-gray-400 group-hover:text-blue-400'}
+                                        ${isCollapsed ? '' : 'mr-3'}
+                                    `}
+                                />
+                                {!isCollapsed && (
+                                    <span className={`truncate font-semibold relative z-10 tracking-wide ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-400'}`}>{item.label}</span>
+                                )}
+
+                                {/* Indicateur actif pour la version collapsed amélioré */}
+                                {isCollapsed && isActive && (
+                                    <div className="absolute left-0 w-1.5 h-10 rounded-r-full shadow-lg shadow-soni-orange/50"></div>
+                                )}
+                            </button>
+                        </Tooltip>
                     )
                 })}
             </nav>
         </div>
 
         {/* Section utilisateur améliorée */}
-        <div className="flex-shrink-0 border-t-2 border-white/10 bg-gradient-to-r from-soni-navy-dark via-soni-navy to-soni-navy-dark p-6 relative">
+        <div className="flex-shrink-0 border-t-2 border-white/10 bg-gradient-to-r from-soni-navy-dark via-soni-navy to-soni-navy-dark relative">
             {/* Effet lumineux subtil */}
             <div className="absolute inset-0 bg-gradient-to-t from-soni-orange/5 to-transparent pointer-events-none"></div>
 
-            <div className={`flex items-center w-full relative z-10 ${isCollapsed ? 'justify-center' : ''}`}>
+            {/* Informations utilisateur */}
+            <div className={`flex items-center w-full relative z-10 p-6 ${isCollapsed ? 'justify-center' : ''}`}>
                 {!isCollapsed && (
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center">
                             {/* Avatar utilisateur amélioré */}
                             <div className="relative">
-                                <div className="w-10 h-10 bg-gradient-to-br from-soni-orange via-orange-500 to-accent-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy">
+                                <div className="w-10 h-10 bg-blue-500 to-accent-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy">
                                     <span className="text-white font-bold text-sm tracking-wide">
                                         {(user?.name || 'Admin').charAt(0).toUpperCase()}
                                     </span>
@@ -266,7 +273,7 @@ const SidebarContent = ({
                                 <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-soni-navy shadow-sm"></div>
                             </div>
                             <div className="ml-4 flex-1">
-                                <p className="text-sm font-bold text-white truncate tracking-wide">{user?.name || 'Administrateur'}</p>
+                                <p className="text-sm font-bold text-primary truncate tracking-wide">{user?.name || 'Administrateur'}</p>
                                 <p className="text-xs text-soni-orange/80 truncate font-medium">{user?.email || 'admin@sonishop.com'}</p>
                                 <div className="flex items-center mt-1">
                                     <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
@@ -276,18 +283,42 @@ const SidebarContent = ({
                         </div>
                     </div>
                 )}
+                {isCollapsed && (
+                    <div className="relative">
+                        <div className="w-10 h-10 bg-blue-500 to-accent-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy">
+                            <span className="text-white font-bold text-sm tracking-wide">
+                                {(user?.name || 'Admin').charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        {/* Indicateur de statut en ligne */}
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-soni-navy shadow-sm"></div>
+                    </div>
+                )}
+            </div>
 
-                <button
-                    onClick={onLogout}
-                    className={`
-                        p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-red-500/20 transition-all duration-300 group
-                        border border-transparent hover:border-red-400/30 backdrop-blur-sm
-                        ${isCollapsed ? '' : 'ml-3'}
-                    `}
-                    title={isCollapsed ? 'Se déconnecter' : 'Se déconnecter'}
+            {/* Bouton de déconnexion */}
+            <div className="px-6 pb-6 relative z-10 flex items-center justify-center">
+                <Tooltip 
+                    content="Se déconnecter"
+                    position="right"
+                    disabled={!isCollapsed}
                 >
-                    <LogoutIcon className="h-5 w-5 group-hover:text-red-400 transition-all duration-300 group-hover:scale-110" />
-                </button>
+                    <button
+                        onClick={onLogout}
+                        className={`
+                            w-full p-3 rounded-xl text-red-400 hover:text-white hover:bg-red-500/20 transition-all duration-300 group
+                            border border-transparent hover:border-red-400/30 backdrop-blur-sm flex items-center
+                            ${isCollapsed ? 'justify-center' : 'justify-start'}
+                        `}
+                    >
+                        <LogoutIcon className="h-5 w-5 group-hover:text-red-400 transition-all duration-300 group-hover:scale-110" />
+                        {!isCollapsed && (
+                            <span className="ml-3 text-sm font-medium group-hover:text-white transition-colors">
+                                Se déconnecter
+                            </span>
+                        )}
+                    </button>
+                </Tooltip>
             </div>
         </div>
     </div>

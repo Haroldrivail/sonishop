@@ -65,7 +65,7 @@ const Categories = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-soni-navy to-blue-800 text-white py-16">
+      <section className="bg-blue-800 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-4">
@@ -107,7 +107,7 @@ const Categories = () => {
 
                   {/* Category Title Overlay */}
                   <div className="absolute bottom-4 left-4 right-4">
-                    <h3 className="text-2xl font-bold text-white mb-2">
+                    <h3 className="text-xl font-bold text-white mb-2">
                       {category.name}
                     </h3>
                     <p className="text-white/90 text-sm">
@@ -127,7 +127,7 @@ const Categories = () => {
                         Découvrir tous les produits
                       </p>
                     </div>
-                    <div className="w-10 h-10 bg-gradient-to-r from-soni-navy to-blue-700 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                       <ArrowRightIcon className="w-5 h-5 text-white" />
                     </div>
                   </div>
@@ -157,7 +157,7 @@ const Categories = () => {
                 to={`/products?category=${category.id}`}
                 className="group text-center p-6 rounded-xl bg-gray-50 hover:bg-gradient-to-br hover:from-soni-navy/5 hover:to-blue-600/5 transition-all duration-300"
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-soni-navy to-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                   <span className="text-white font-bold text-xl">
                     {category.name.charAt(0)}
                   </span>
@@ -175,7 +175,7 @@ const Categories = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-soni-orange to-orange-600 py-16">
+      <section className="bg-orange-600 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
             Vous ne trouvez pas ce que vous cherchez ?
@@ -193,7 +193,7 @@ const Categories = () => {
             </Link>
             <Link
               to="/products"
-              className="inline-flex items-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white hover:text-blue-100 transition-colors font-semibold"
+              className="inline-flex items-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white hover:text-blue-950 transition-colors font-semibold"
             >
               Voir tous les produits
             </Link>

@@ -171,7 +171,7 @@ const OrdersManagement = () => {
             {/* Header avec actions */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Gestion des Commandes</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Gestion des Commandes</h2>
                     <p className="text-gray-600">Gérez et suivez toutes les commandes de la plateforme</p>
                 </div>
                 <div className="flex gap-3">
@@ -250,17 +250,17 @@ const OrdersManagement = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">Total commandes</div>
-                    <div className="text-2xl font-bold text-gray-900">{orders.length}</div>
+                    <div className="text-xl font-bold text-gray-900">{orders.length}</div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">Complétées</div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-xl font-bold text-green-600">
                         {orders.filter(o => o.status === 'completed').length}
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">En attente</div>
-                    <div className="text-2xl font-bold text-yellow-600">
+                    <div className="text-xl font-bold text-yellow-600">
                         {orders.filter(o => o.status === 'pending').length}
                     </div>
                 </div>

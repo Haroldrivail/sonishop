@@ -79,7 +79,7 @@ const Cart = () => {
                         <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
                             <ShoppingCartIcon className="w-12 h-12 text-gray-400" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Votre panier est vide</h2>
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">Votre panier est vide</h2>
                         <p className="text-gray-600 mb-8">
                             Découvrez nos produits et ajoutez-les à votre panier pour voir vos articles ici.
                             <br />
@@ -122,7 +122,7 @@ const Cart = () => {
                                 <ChevronLeftIcon className="mr-2 w-5 h-5" />
                                 Continuer mes achats
                             </Link>
-                            <h1 className="text-2xl font-bold text-gray-900">Mon panier</h1>
+                            <h1 className="text-xl font-bold text-gray-900">Mon panier</h1>
                         </div>
                         <div className="text-sm text-gray-600">
                             {cart.length} article{cart.length > 1 ? 's' : ''}

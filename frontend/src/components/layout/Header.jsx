@@ -32,8 +32,8 @@ function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/" className="text-2xl font-bold text-soni-navy">
-              SoniShop
+            <Link to="/" className="text-xl font-bold text-soni-navy">
+              SONISHOP
             </Link>
           </div>
 
@@ -126,7 +126,7 @@ function Header() {
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Administration
+                        Dashboard
                       </Link>
                     )}
                     <hr className="my-1" />

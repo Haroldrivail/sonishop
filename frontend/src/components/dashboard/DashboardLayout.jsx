@@ -76,7 +76,7 @@ const DashboardLayout = ({
                     <div className="flex-1 px-4 lg:px-6 flex justify-between items-center">
                         {/* Titre de la page */}
                         <div className="flex-1 flex items-center">
-                            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
+                            <h1 className="text-xl lg:text-xl font-bold text-gray-900">
                                 {getPageTitle()}
                             </h1>
                         </div>

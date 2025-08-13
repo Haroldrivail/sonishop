@@ -51,7 +51,7 @@ const SpecialOffers = () => {
           {offers.map(offer => (
             <div
               key={offer.id}
-              className="group relative bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
+              className="group relative bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform "
             >
               {/* Image de fond */}
               <div className="relative h-64 lg:h-80 overflow-hidden">
@@ -128,10 +128,10 @@ const SpecialOffers = () => {
         </div>
 
         {/* Bannière promotionnelle supplémentaire */}
-        <div className="mt-16 bg-gradient-to-r from-soni-navy via-blue-700 to-soni-orange rounded-3xl p-8 lg:p-12 text-white text-center">
+        <div className="mt-16 bg-blue-700 to-soni-orange rounded-3xl p-8 lg:p-12 text-white text-center">
           <div className="max-w-3xl mx-auto">
             <TruckIcon className="w-16 h-16 mx-auto mb-6 text-white/80" />
-            <h3 className="text-2xl lg:text-3xl font-bold mb-4">
+            <h3 className="text-xl lg:text-3xl font-bold mb-4">
               Livraison Gratuite
             </h3>
             <p className="text-lg text-white/90 mb-6">

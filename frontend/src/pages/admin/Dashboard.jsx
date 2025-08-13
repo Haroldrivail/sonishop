@@ -149,7 +149,7 @@ const Dashboard = () => {
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1">
                                                 <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                                                <p className="text-2xl font-bold text-gray-900 mb-2">{stat.value}</p>
+                                                <p className="text-xl font-bold text-gray-900 mb-2">{stat.value}</p>
                                                 <div className="flex items-center">
                                                     {stat.trend === 'up' ? (
                                                         <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
@@ -270,7 +270,7 @@ const Dashboard = () => {
                                     onClick={() => setActiveTab('analytics')}
                                     className="bg-white/10 cursor-pointer hover:bg-white/20 rounded-lg p-4 text-left transition-colors group"
                                 >
-                                    <div className="text-2xl mb-2">📊</div>
+                                    <div className="text-xl mb-2">📊</div>
                                     <div className="font-medium">Voir Analytics</div>
                                     <div className="text-sm text-blue-300">Données détaillées</div>
                                 </button>
@@ -278,7 +278,7 @@ const Dashboard = () => {
                                     onClick={() => setActiveTab('products')}
                                     className="bg-white/10 cursor-pointer hover:bg-white/20 rounded-lg p-4 text-left transition-colors group"
                                 >
-                                    <div className="text-2xl mb-2">➕</div>
+                                    <div className="text-xl mb-2">➕</div>
                                     <div className="font-medium">Ajouter Produit</div>
                                     <div className="text-sm text-blue-100">Nouveau catalogue</div>
                                 </button>
@@ -286,7 +286,7 @@ const Dashboard = () => {
                                     onClick={() => setActiveTab('reports')}
                                     className="bg-white/10 cursor-pointer hover:bg-white/20 rounded-lg p-4 text-left transition-colors group"
                                 >
-                                    <div className="text-2xl mb-2">📋</div>
+                                    <div className="text-xl mb-2">📋</div>
                                     <div className="font-medium">Export Données</div>
                                     <div className="text-sm text-blue-300">Rapports détaillés</div>
                                 </button>
