@@ -6,11 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    // Les champs qu’on peut remplir en masse (via create ou update)
     protected $fillable = [
         'name',
         'description',
         'price',
-        'image',  // chemin vers l’image dans storage
+        'sale_price',
+        'image',
+        'category',
+        'rating',
+        'reviews',
+        'in_stock',
+        'is_new',
+        'free_shipping',
+        'sales',
     ];
 }

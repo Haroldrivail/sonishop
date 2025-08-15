@@ -63,7 +63,9 @@ export function AuthProvider({ children }) {
   const login = async (credentials) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
     try {
-      await api.get('/sanctum/csrf-cookie'); // // Cela devient http://public.test/api/sanctum/csrf-cookie grâce au prefix
+      await api.get('/sanctum/csrf-cookie');
+      console.log('CSRF cookie request done');
+      
       const response = await api.post('/login', credentials);
       const { user } = response.data;
 

@@ -22,11 +22,18 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'sale_price' => 'nullable|numeric',
+            'category' => 'required|string|max:100',
+            'rating' => 'nullable|numeric|min:0|max:5',
+            'reviews' => 'nullable|integer|min:0',
+            'in_stock' => 'boolean',
+            'is_new' => 'boolean',
+            'free_shipping' => 'boolean',
+            'sales' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:2048', // max 2MB
         ]);
 
         $imagePath = null;
-
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('products', 'public');
         }
@@ -35,13 +42,21 @@ class ProductController extends Controller
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
+            'sale_price' => $request->sale_price,
+            'category' => $request->category,
+            'rating' => $request->rating,
+            'reviews' => $request->reviews,
+            'in_stock' => $request->in_stock ?? true,
+            'is_new' => $request->is_new ?? false,
+            'free_shipping' => $request->free_shipping ?? false,
+            'sales' => $request->sales,
             'image' => $imagePath,
         ]);
 
         return response()->json($product, 201);
     }
 
-    // Affiche un produit
+    // Affiche un produit spécifique
     public function show($id)
     {
         $product = Product::findOrFail($id);
@@ -57,11 +72,18 @@ class ProductController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'sometimes|required|numeric',
+            'sale_price' => 'nullable|numeric',
+            'category' => 'sometimes|required|string|max:100',
+            'rating' => 'nullable|numeric|min:0|max:5',
+            'reviews' => 'nullable|integer|min:0',
+            'in_stock' => 'boolean',
+            'is_new' => 'boolean',
+            'free_shipping' => 'boolean',
+            'sales' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            // Supprime l'ancienne image si existante
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
@@ -71,6 +93,14 @@ class ProductController extends Controller
         $product->name = $request->name ?? $product->name;
         $product->description = $request->description ?? $product->description;
         $product->price = $request->price ?? $product->price;
+        $product->sale_price = $request->sale_price ?? $product->sale_price;
+        $product->category = $request->category ?? $product->category;
+        $product->rating = $request->rating ?? $product->rating;
+        $product->reviews = $request->reviews ?? $product->reviews;
+        $product->in_stock = $request->has('in_stock') ? $request->in_stock : $product->in_stock;
+        $product->is_new = $request->has('is_new') ? $request->is_new : $product->is_new;
+        $product->free_shipping = $request->has('free_shipping') ? $request->free_shipping : $product->free_shipping;
+        $product->sales = $request->sales ?? $product->sales;
 
         $product->save();
 

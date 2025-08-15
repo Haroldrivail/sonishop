@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { useEffect } from 'react'; // (au début du fichier si pas encore importé)
 import axios from '../../api/axios'
+import DashboardProductFormModal from '../../components/dashboard/DashboardProductFormModal'
+import { useAuth } from '../../context/AuthContext';
 import {
     ShoppingBagIcon,
     PlusIcon,
@@ -14,8 +16,19 @@ import {
     ChevronUpIcon,
     ChevronDownIcon
 } from '../../components/icons'
+import api from '../../api/axios';
+const initialFormState = {
+    name: '',
+    description: '',
+    category: 'Smartphones',
+    price: '',
+    stock: '',
+    status: 'active',
+    image: ''
+}
 
 const ProductsManagement = () => {
+    const { user } = useAuth();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,8 +39,9 @@ const ProductsManagement = () => {
     const [sortOrder, setSortOrder] = useState('asc');
     const [showAddModal, setShowAddModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [formData, setFormData] = useState(initialFormState);
 
-    // ⬇️ ICI le useEffect
+    //  ICI le useEffect
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -48,6 +62,23 @@ const ProductsManagement = () => {
 
         fetchProducts();
     }, []);
+
+    useEffect(() => {
+        if (selectedProduct) {
+            setFormData({
+                name: selectedProduct.name,
+                description: selectedProduct.description,
+                category: selectedProduct.category,
+                price: selectedProduct.price,
+                stock: selectedProduct.stock,
+                status: selectedProduct.status,
+                image: selectedProduct.image,
+            });
+        } else {
+            setFormData(initialFormState);
+        }
+    }, [selectedProduct]);
+
 
 
     const categories = ['all', 'Smartphones', 'Ordinateurs', 'Audio', 'Tablettes', 'Accessoires']
@@ -85,7 +116,7 @@ const ProductsManagement = () => {
     const filteredProducts = products
         .filter(product => {
             const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                product.category.toLowerCase().includes(searchTerm.toLowerCase())
+                product.category.toLowerCase().includes(searchTerm.toLowerCase())
             const matchesCategory = filterCategory === 'all' || product.category === filterCategory
             const matchesStatus = filterStatus === 'all' || product.status === filterStatus
             return matchesSearch && matchesCategory && matchesStatus
@@ -93,12 +124,12 @@ const ProductsManagement = () => {
         .sort((a, b) => {
             let aVal = a[sortBy]
             let bVal = b[sortBy]
-            
+
             if (sortBy === 'price' || sortBy === 'stock' || sortBy === 'sales') {
                 aVal = Number(aVal)
                 bVal = Number(bVal)
             }
-            
+
             if (sortOrder === 'asc') {
                 return aVal > bVal ? 1 : -1
             } else {
@@ -122,12 +153,78 @@ const ProductsManagement = () => {
         >
             <span>{children}</span>
             {sortBy === field && (
-                sortOrder === 'asc' ? 
-                <ChevronUpIcon className="h-4 w-4" /> : 
-                <ChevronDownIcon className="h-4 w-4" />
+                sortOrder === 'asc' ?
+                    <ChevronUpIcon className="h-4 w-4" /> :
+                    <ChevronDownIcon className="h-4 w-4" />
             )}
         </button>
     )
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+
+            console.log("Selected Product:", selectedProduct); // Ajouté
+            // 1. Obtenir le CSRF token de Laravel (si tu utilises Sanctum)
+            await axios.get('http://public.test/sanctum/csrf-cookie', { withCredentials: true });
+
+            const payload = {
+                ...formData,
+                price: Number(formData.price),
+                stock: Number(formData.stock),
+            };
+            console.log("Payload:", payload);
+
+
+            // 3. Envoyer la requête PUT ou POST
+            if (selectedProduct) {
+                console.log("🔧 ID produit à modifier :", selectedProduct.id);
+                await axios.put(`/products/${selectedProduct.id}`, payload, {
+                    withCredentials: true
+                });
+            } else {
+                await axios.post('/products', payload, {
+                    withCredentials: true
+                });
+            }
+
+
+            // 🔄 Re-fetch des produits
+            const response = await axios.get('/products');
+            const data = response.data;
+            const fetchedProducts = Array.isArray(data) ? data : data.data;
+            setProducts(fetchedProducts);
+
+            // 🧹 Reset des modals + formulaire
+            setShowAddModal(false);
+            setSelectedProduct(null);
+            setFormData(initialFormState);
+        } catch (error) {
+            console.error("Erreur lors de l'enregistrement :", error);
+            alert("Une erreur est survenue. Veuillez réessayer.");
+        }
+    }
+
+    const handleDelete = async (productId) => {
+        if (!user?.is_admin) { // Vérifiez is_admin plutôt que role
+            alert("Action réservée aux administrateurs");
+            return;
+        }
+
+        if (window.confirm("Confirmez-vous la suppression ?")) {
+            try {
+                 // 1. Récupérer le cookie CSRF
+            await api.get('/sanctum/csrf-cookie');
+                await api.delete(`/products/${productId}`);
+                const response = await api.get('/products');
+                setProducts(response.data.data || response.data);
+            } catch (error) {
+                console.error("Erreur:", error.response?.data);
+                alert(error.response?.data?.message || "Erreur lors de la suppression");
+            }
+        }
+    };
+
 
     return (
         <div className="space-y-6">
@@ -279,9 +376,9 @@ const ProductsManagement = () => {
                                 <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
-                                            <img 
-                                                className="h-12 w-12 rounded-lg object-cover shadow-sm" 
-                                                src={product.image} 
+                                            <img
+                                                className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                                src={product.image}
                                                 alt={product.name}
                                                 onError={(e) => {
                                                     e.target.style.display = 'none'
@@ -320,13 +417,16 @@ const ProductsManagement = () => {
                                         >
                                             <PencilIcon className="h-5 w-5" />
                                         </button>
-                                        <button
-                                            className="text-red-600 hover:text-red-800 transition-colors"
-                                            title="Supprimer"
-                                            onClick={() => alert(`Supprimer ${product.name}`)}
-                                        >
-                                            <TrashIcon className="h-5 w-5" />
-                                        </button>
+                                        
+                                                    {user?.is_admin && ( // Vérifiez is_admin ici
+                                                        <button
+                                                            onClick={() => handleDelete(product.id)}
+                                                            className="text-red-600 hover:text-red-800"
+                                                        >
+                                                            <TrashIcon className="h-5 w-5" />
+                                                        </button>
+                                                    )}
+
                                     </td>
                                 </tr>
                             ))}
@@ -343,35 +443,20 @@ const ProductsManagement = () => {
             </div>
 
             {/* Modal Ajouter ou Modifier (placeholder) */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-lg font-bold mb-4">Ajouter un produit (fonctionnalité à venir)</h2>
-                        <button
-                            onClick={() => setShowAddModal(false)}
-                            className="mt-4 px-4 py-2 bg-soni-orange text-white rounded-lg hover:bg-accent-700"
-                        >
-                            Fermer
-                        </button>
-                    </div>
-                </div>
+            {(showAddModal || selectedProduct) && (
+                <DashboardProductFormModal
+                    formData={formData}
+                    setFormData={setFormData}
+                    onClose={() => {
+                        setShowAddModal(false)
+                        setSelectedProduct(null)
+                        setFormData(initialFormState)
+                    }}
+                    onSubmit={handleSubmit}
+                    isEdit={!!selectedProduct}
+                />
             )}
 
-            {/* Modal Modifier (placeholder) */}
-            {selectedProduct && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-lg font-bold mb-4">Modifier le produit (fonctionnalité à venir)</h2>
-                        <p className="mb-4">Produit: {selectedProduct.name}</p>
-                        <button
-                            onClick={() => setSelectedProduct(null)}
-                            className="mt-4 px-4 py-2 bg-soni-orange text-white rounded-lg hover:bg-accent-700"
-                        >
-                            Fermer
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

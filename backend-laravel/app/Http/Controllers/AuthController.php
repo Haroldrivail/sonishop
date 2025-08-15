@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // ✅ Enregistrement d’un nouvel utilisateur
+    //  Enregistrement d’un nouvel utilisateur
     public function register(Request $request)
     {
         $request->validate([
@@ -35,7 +35,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // ✅ Connexion d’un utilisateur
+    //  Connexion d’un utilisateur
     public function login(Request $request)
     {
         $request->validate([
@@ -51,7 +51,7 @@ class AuthController extends Controller
             ]);
         }
 
-        // ✅ Créer un token d'accès API
+        //  Créer un token d'accès API
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -66,7 +66,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // ✅ Déconnexion
+    //  Déconnexion
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -76,7 +76,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // ✅ Récupérer l'utilisateur connecté
+    //  Récupérer l'utilisateur connecté
     public function user(Request $request)
     {
         return response()->json($request->user());
