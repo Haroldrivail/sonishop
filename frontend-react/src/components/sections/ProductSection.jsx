@@ -213,10 +213,10 @@ const ProductSection = ({
           <div className="text-center">
             <Link
               to={viewAllLink}
-              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-soni-navy to-blue-700 text-white font-semibold rounded-lg hover:from-soni-navy/90 hover:to-blue-700/90 transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all duration-300 transform shadow-lg hover:shadow-xl"
             >
               Voir tous les produits
-              <ArrowRightIcon className="w-5 h-5" />
+              <ArrowRightIcon className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         )}

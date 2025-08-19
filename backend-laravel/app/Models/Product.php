@@ -16,6 +16,7 @@ class Product extends Model
         'rating',
         'reviews',
         'in_stock',
+        'stock',
         'is_new',
         'free_shipping',
         'sales',

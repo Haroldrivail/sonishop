@@ -211,7 +211,7 @@ const NotificationsPage = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <h1 className="text-xl font-bold text-gray-900 flex items-center">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center mr-3">
                             <BellIcon className="h-5 w-5 text-white" />
                         </div>
@@ -248,7 +248,7 @@ const NotificationsPage = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Total</p>
-                            <p className="text-2xl font-bold text-gray-900">{notifications.length}</p>
+                            <p className="text-xl font-bold text-gray-900">{notifications.length}</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                             <BellIcon className="h-6 w-6 text-blue-600" />
@@ -259,7 +259,7 @@ const NotificationsPage = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Non lues</p>
-                            <p className="text-2xl font-bold text-red-600">{unreadCount}</p>
+                            <p className="text-xl font-bold text-red-600">{unreadCount}</p>
                         </div>
                         <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                             <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
@@ -270,7 +270,7 @@ const NotificationsPage = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Haute priorité</p>
-                            <p className="text-2xl font-bold text-yellow-600">
+                            <p className="text-xl font-bold text-yellow-600">
                                 {notifications.filter(n => n.priority === 'high').length}
                             </p>
                         </div>
@@ -283,7 +283,7 @@ const NotificationsPage = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Aujourd'hui</p>
-                            <p className="text-2xl font-bold text-green-600">
+                            <p className="text-xl font-bold text-green-600">
                                 {notifications.filter(n => {
                                     const today = new Date().toDateString()
                                     const notifDate = new Date(n.time).toDateString()

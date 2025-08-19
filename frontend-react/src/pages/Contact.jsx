@@ -77,7 +77,7 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-soni-navy via-soni-navy/95 to-blue-900 text-white py-24">
+      <section className="relative bg-blue-900 text-white py-24">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0 bg-repeat" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10 10-4.5 10-10 10-10-4.5-10-10 4.5-10 10-10z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -108,7 +108,7 @@ const Contact = () => {
                 key={index}
                 className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 text-center"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-soni-navy to-blue-700 rounded-2xl mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-700 rounded-2xl mb-6">
                   <info.icon className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -128,7 +128,7 @@ const Contact = () => {
 
       {/* Contact Form */}
       <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
             <div className="grid lg:grid-cols-2">
               {/* Form Side */}
@@ -226,7 +226,7 @@ const Contact = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="group w-full flex items-center justify-center px-8 py-4 bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    className="group w-full flex items-center justify-center px-8 py-4 bg-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {loading ? (
                       <>
@@ -247,10 +247,10 @@ const Contact = () => {
               </div>
 
               {/* Info Side */}
-              <div className="bg-gradient-to-br from-soni-navy to-blue-800 p-8 lg:p-12 text-white">
+              <div className="bg-blue-800 p-8 lg:p-12 text-white">
                 <div className="h-full flex flex-col justify-between">
                   <div>
-                    <h3 className="text-2xl font-bold mb-6">
+                    <h3 className="text-xl font-bold mb-6">
                       Besoin d'aide immédiate ?
                     </h3>
                     <div className="space-y-6">
@@ -278,7 +278,7 @@ const Contact = () => {
                   <div className="mt-8">
                     <Link
                       to="/"
-                      className="inline-flex items-center text-soni-orange hover:text-orange-300 font-medium transition-colors"
+                      className="inline-flex items-center text-soni-orange hover:text-orange-500 font-medium transition-colors"
                     >
                       ← Retour à l'accueil
                     </Link>

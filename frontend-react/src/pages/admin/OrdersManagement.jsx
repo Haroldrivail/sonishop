@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { useEffect } from 'react'
+import api from '../../axios'
 import {
     EyeIcon,
     PencilIcon,
@@ -13,84 +15,29 @@ const OrdersManagement = () => {
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [dateFilter, setDateFilter] = useState('all')
+    const [loading, setLoading] = useState(true)
+    const [orders, setOrders] = useState([])
+    const [selectedOrder, setSelectedOrder] = useState(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const orders = [
-        {
-            id: '#SN001234',
-            customer: 'Jean Dupont',
-            email: 'jean.dupont@email.com',
-            phone: '+237 691 234 567',
-            amount: 850000,
-            status: 'completed',
-            paymentMethod: 'card',
-            deliveryMethod: 'express',
-            date: '2025-08-12',
-            address: 'Yaoundé, Cameroun',
-            items: [
-                { name: 'iPhone 15 Pro Max', quantity: 1, price: 850000 }
-            ]
-        },
-        {
-            id: '#SN001235',
-            customer: 'Marie Claire',
-            email: 'marie.claire@email.com',
-            phone: '+237 677 890 123',
-            amount: 163000,
-            status: 'pending',
-            paymentMethod: 'mobile',
-            deliveryMethod: 'standard',
-            date: '2025-08-12',
-            address: 'Douala, Cameroun',
-            items: [
-                { name: 'AirPods Pro 2', quantity: 1, price: 163000 }
-            ]
-        },
-        {
-            id: '#SN001236',
-            customer: 'Paul Martin',
-            email: 'paul.martin@email.com',
-            phone: '+237 655 456 789',
-            amount: 425000,
-            status: 'processing',
-            paymentMethod: 'transfer',
-            deliveryMethod: 'pickup',
-            date: '2025-08-11',
-            address: 'Bafoussam, Cameroun',
-            items: [
-                { name: 'Samsung Galaxy S24', quantity: 1, price: 425000 }
-            ]
-        },
-        {
-            id: '#SN001237',
-            customer: 'Sophie Ngono',
-            email: 'sophie.ngono@email.com',
-            phone: '+237 698 765 432',
-            amount: 680000,
-            status: 'completed',
-            paymentMethod: 'card',
-            deliveryMethod: 'express',
-            date: '2025-08-11',
-            address: 'Garoua, Cameroun',
-            items: [
-                { name: 'MacBook Air M2', quantity: 1, price: 680000 }
-            ]
-        },
-        {
-            id: '#SN001238',
-            customer: 'Pierre Kamga',
-            email: 'pierre.kamga@email.com',
-            phone: '+237 672 345 678',
-            amount: 195000,
-            status: 'cancelled',
-            paymentMethod: 'mobile',
-            deliveryMethod: 'standard',
-            date: '2025-08-10',
-            address: 'Bamenda, Cameroun',
-            items: [
-                { name: 'Écouteurs Bluetooth', quantity: 2, price: 97500 }
-            ]
+
+
+    useEffect(() => {
+        fetchOrders()
+    }, [])
+
+    const fetchOrders = async () => {
+        try {
+            const response = await api.get('/orders')
+            // Vérification de la réponse
+            setOrders(response.data)
+        } catch (error) {
+            console.error('Erreur:', error)
+        } finally {
+            setLoading(false)
         }
-    ]
+    }
+
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -140,23 +87,23 @@ const OrdersManagement = () => {
     }
 
     const filteredOrders = orders.filter(order => {
-        const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            order.email.toLowerCase().includes(searchTerm.toLowerCase())
-        
+        const matchesSearch = order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.email.toLowerCase().includes(searchTerm.toLowerCase())
+
         const matchesStatus = statusFilter === 'all' || order.status === statusFilter
-        
+
         return matchesSearch && matchesStatus
     })
 
     const handleExportOrders = () => {
         // Simulation d'export
-        const csvContent = "data:text/csv;charset=utf-8," + 
+        const csvContent = "data:text/csv;charset=utf-8," +
             "ID,Client,Email,Montant,Statut,Date\n" +
-            filteredOrders.map(order => 
-                `${order.id},${order.customer},${order.email},${order.amount},${order.status},${order.date}`
+            filteredOrders.map(order =>
+                `${order.id},${order.customer_name},${order.email},${order.amount},${order.status},${order.date}`
             ).join("\n")
-        
+
         const encodedUri = encodeURI(csvContent)
         const link = document.createElement("a")
         link.setAttribute("href", encodedUri)
@@ -166,12 +113,36 @@ const OrdersManagement = () => {
         document.body.removeChild(link)
     }
 
+    const openOrderModal = (order) => {
+        setSelectedOrder(order)
+        setIsModalOpen(true)
+    }
+
+    const closeOrderModal = () => {
+        console.log("Détails de la commande sélectionnée :", selectedOrder)
+
+        setIsModalOpen(false)
+        setSelectedOrder(null)
+    }
+
+    const cancelOrder = async (orderId) => {
+        try {
+            await api.put(`/orders/${orderId}/cancel`);
+            // Mettre à jour la liste des commandes après annulation
+            fetchOrders();
+        } catch (error) {
+            console.error('Erreur lors de l\'annulation :', error);
+            alert('Échec de l\'annulation de la commande.');
+        }
+    };
+
+
     return (
         <div className="space-y-6">
             {/* Header avec actions */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Gestion des Commandes</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Gestion des Commandes</h2>
                     <p className="text-gray-600">Gérez et suivez toutes les commandes de la plateforme</p>
                 </div>
                 <div className="flex gap-3">
@@ -250,24 +221,24 @@ const OrdersManagement = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">Total commandes</div>
-                    <div className="text-2xl font-bold text-gray-900">{orders.length}</div>
+                    <div className="text-xl font-bold text-gray-900">{orders.length}</div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">Complétées</div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-xl font-bold text-green-600">
                         {orders.filter(o => o.status === 'completed').length}
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">En attente</div>
-                    <div className="text-2xl font-bold text-yellow-600">
+                    <div className="text-xl font-bold text-yellow-600">
                         {orders.filter(o => o.status === 'pending').length}
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-sm text-gray-600">Chiffre d'affaires</div>
                     <div className="text-xl font-bold text-soni-navy">
-                        {formatPrice(orders.reduce((sum, order) => 
+                        {formatPrice(orders.reduce((sum, order) =>
                             order.status === 'completed' ? sum + order.amount : sum, 0))}
                     </div>
                 </div>
@@ -304,13 +275,14 @@ const OrdersManagement = () => {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredOrders.map((order) => (
+                                console.log("order.complet:", order),//
                                 <tr key={order.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">{order.id}</div>
-                                        <div className="text-sm text-gray-500">{getDeliveryMethodText(order.deliveryMethod)}</div>
+                                        <div className="text-sm text-gray-500">{getDeliveryMethodText(order.delivery_method)}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{order.customer}</div>
+                                        <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
                                         <div className="text-sm text-gray-500">{order.email}</div>
                                         <div className="text-sm text-gray-500">{order.phone}</div>
                                     </td>
@@ -323,22 +295,35 @@ const OrdersManagement = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{getPaymentMethodText(order.paymentMethod)}</div>
+                                        <div className="text-sm text-gray-900">{getPaymentMethodText(order.payment_method)}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(order.date).toLocaleDateString('fr-FR')}
-                                    </td>
+                                        {order.created_at
+                                            ? new Date(order.created_at).toLocaleDateString('fr-FR')
+                                            : 'Date non définie'}                                </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex space-x-2">
-                                            <button className="text-soni-navy hover:text-soni-navy/80">
+                                            <button
+                                                onClick={() => openOrderModal(order)}
+                                                className="text-soni-navy hover:text-soni-navy/80"
+                                            >
                                                 <EyeIcon className="h-5 w-5" />
                                             </button>
+
                                             <button className="text-gray-600 hover:text-gray-900">
                                                 <PencilIcon className="h-5 w-5" />
                                             </button>
-                                            <button className="text-red-600 hover:text-red-900">
+                                            <button
+                                                onClick={() => {
+                                                    if (window.confirm('Annuler cette commande ?')) {
+                                                        cancelOrder(order.id)
+                                                    }
+                                                }}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
                                                 <TrashIcon className="h-5 w-5" />
                                             </button>
+
                                         </div>
                                     </td>
                                 </tr>
@@ -380,8 +365,51 @@ const OrdersManagement = () => {
                     </div>
                 </div>
             </div>
+            {
+                isModalOpen && selectedOrder && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                        <div className="bg-white p-6 rounded-lg max-w-lg w-full relative shadow-lg">
+                            <button
+                                onClick={closeOrderModal}
+                                className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold"
+                                aria-label="Fermer la fenêtre"
+                            >
+                                &times;
+                            </button>
+
+                            <h3 className="text-xl font-bold mb-4">Détails commande #{selectedOrder.order_number}</h3>
+
+                            <p><strong>Client :</strong> {selectedOrder.customer_name}</p>
+                            <p><strong>Email :</strong> {selectedOrder.email}</p>
+                            <p><strong>Téléphone :</strong> {selectedOrder.phone}</p>
+                            <p><strong>Adresse :</strong> {selectedOrder.address}</p>
+                            <p><strong>Montant :</strong> {formatPrice(selectedOrder.amount)}</p>
+                            <p><strong>Statut :</strong> {getStatusText(selectedOrder.status)}</p>
+                            <p><strong>Méthode de paiement :</strong> {getPaymentMethodText(selectedOrder.payment_method)}</p>
+                            <p><strong>Méthode de livraison :</strong> {getDeliveryMethodText(selectedOrder.delivery_method)}</p>
+                            <p><strong>Date :</strong> {new Date(selectedOrder.created_at).toLocaleString('fr-FR')}</p>
+
+                            <h4 className="mt-4 font-semibold">Articles :</h4>
+                            {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                                <ul className="list-disc list-inside max-h-40 overflow-y-auto">
+                                    {selectedOrder.items.map((item, idx) => (
+                                        <li key={idx}>
+                                            {item.name} - {item.quantity} x {formatPrice(item.price)}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p>Aucun article</p>
+                            )}
+                        </div>
+                    </div>
+                )
+            }
+
+
         </div>
     )
+
 }
 
 export default OrdersManagement

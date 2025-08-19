@@ -19,6 +19,8 @@ class User extends Authenticatable
         'phone',
         'location',
         'password',
+        'address',
+        'role', // Ajout du champ role
     ];
 
     protected $hidden = [
@@ -30,4 +32,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+    // Méthode pour vérifier si l'utilisateur est un administrateur
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
 }

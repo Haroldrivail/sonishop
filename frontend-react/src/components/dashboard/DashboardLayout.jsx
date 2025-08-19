@@ -35,6 +35,7 @@ const DashboardLayout = ({
             customers: 'Gestion des Clients',
             analytics: 'Analytiques & Rapports',
             reports: 'Rapports',
+            improvements: 'Améliorations', // Ajout ici 
             settings: 'Paramètres'
         }
         
@@ -76,7 +77,7 @@ const DashboardLayout = ({
                     <div className="flex-1 px-4 lg:px-6 flex justify-between items-center">
                         {/* Titre de la page */}
                         <div className="flex-1 flex items-center">
-                            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
+                            <h1 className="text-xl lg:text-xl font-bold text-gray-900">
                                 {getPageTitle()}
                             </h1>
                         </div>
@@ -107,7 +108,7 @@ const DashboardLayout = ({
                                             {user?.name || 'Administrateur'}
                                         </p>
                                         <p className="text-xs text-gray-600">
-                                            {user?.role || 'Admin'}
+                                            {user?.role || 'admin'}
                                         </p>
                                     </div>
                                     <button className="h-8 w-8 rounded-full bg-soni-navy flex items-center justify-center text-white text-sm font-medium hover:bg-soni-navy/90 transition-colors">

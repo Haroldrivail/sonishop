@@ -27,6 +27,7 @@ class ProductController extends Controller
             'rating' => 'nullable|numeric|min:0|max:5',
             'reviews' => 'nullable|integer|min:0',
             'in_stock' => 'boolean',
+            'stock' => 'required|integer|min:0',
             'is_new' => 'boolean',
             'free_shipping' => 'boolean',
             'sales' => 'nullable|integer|min:0',
@@ -47,6 +48,7 @@ class ProductController extends Controller
             'rating' => $request->rating,
             'reviews' => $request->reviews,
             'in_stock' => $request->in_stock ?? true,
+            'stock' => $request->stock,
             'is_new' => $request->is_new ?? false,
             'free_shipping' => $request->free_shipping ?? false,
             'sales' => $request->sales,
@@ -77,6 +79,7 @@ class ProductController extends Controller
             'rating' => 'nullable|numeric|min:0|max:5',
             'reviews' => 'nullable|integer|min:0',
             'in_stock' => 'boolean',
+            'stock' => 'required|integer|min:0',
             'is_new' => 'boolean',
             'free_shipping' => 'boolean',
             'sales' => 'nullable|integer|min:0',
@@ -98,6 +101,7 @@ class ProductController extends Controller
         $product->rating = $request->rating ?? $product->rating;
         $product->reviews = $request->reviews ?? $product->reviews;
         $product->in_stock = $request->has('in_stock') ? $request->in_stock : $product->in_stock;
+        $product->stock = $request->stock ?? $product->stock;
         $product->is_new = $request->has('is_new') ? $request->is_new : $product->is_new;
         $product->free_shipping = $request->has('free_shipping') ? $request->free_shipping : $product->free_shipping;
         $product->sales = $request->sales ?? $product->sales;

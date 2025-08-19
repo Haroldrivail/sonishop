@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
@@ -8,6 +8,18 @@ function Header() {
   const { user, isAuthenticated, logout } = useAuth()
   const { cartItemsCount } = useCart()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [cartAnimation, setCartAnimation] = useState(false)
+  const [prevCartCount, setPrevCartCount] = useState(0)
+
+  // Animation du panier quand le nombre d'articles change
+  useEffect(() => {
+    if (cartItemsCount > prevCartCount && prevCartCount > 0) {
+      setCartAnimation(true)
+      const timer = setTimeout(() => setCartAnimation(false), 300)
+      return () => clearTimeout(timer)
+    }
+    setPrevCartCount(cartItemsCount)
+  }, [cartItemsCount, prevCartCount])
 
   const handleLogout = () => {
     logout()
@@ -20,8 +32,8 @@ function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/" className="text-2xl font-bold text-soni-navy">
-              SoniShop
+            <Link to="/" className="text-xl font-bold text-soni-navy">
+              SONISHOP
             </Link>
           </div>
 
@@ -56,12 +68,17 @@ function Header() {
           {/* Actions utilisateur */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Panier */}
-            <Link to="/cart" className="relative text-gray-700 hover:text-blue-600 transition">
-              <ShoppingCartIcon />
+            <Link to="/cart" className="relative text-gray-700 hover:text-blue-600 transition-colors group">
+              <div className={`transition-transform duration-300 ${cartAnimation ? 'scale-125' : 'scale-100'}`}>
+                <ShoppingCartIcon className="w-6 h-6" />
+              </div>
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemsCount}
+                <span className={`absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg transition-all duration-300 ${cartAnimation ? 'animate-bounce scale-110' : ''}`}>
+                  {cartItemsCount > 99 ? '99+' : cartItemsCount}
                 </span>
+              )}
+              {cartAnimation && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-soni-orange rounded-full animate-ping"></div>
               )}
             </Link>
 
@@ -105,11 +122,11 @@ function Header() {
                     </Link>
                     {user?.role === 'admin' && (
                       <Link
-                        to="/admin"
+                        to="/admin/dashboard"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Administration
+                        Dashboard
                       </Link>
                     )}
                     <hr className="my-1" />

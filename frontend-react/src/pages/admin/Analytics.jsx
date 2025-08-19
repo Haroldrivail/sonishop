@@ -28,12 +28,6 @@ const Analytics = () => {
             revenue: Math.floor(Math.random() * 800000) + 200000,
             orders: Math.floor(Math.random() * 40) + 5,
             customers: Math.floor(Math.random() * 35) + 3
-        })),
-        '90d': Array.from({ length: 90 }, (_, i) => ({
-            date: new Date(2025, 5, i + 1).toISOString().split('T')[0],
-            revenue: Math.floor(Math.random() * 1000000) + 300000,
-            orders: Math.floor(Math.random() * 50) + 10,
-            customers: Math.floor(Math.random() * 45) + 8
         }))
     }
 
@@ -76,14 +70,14 @@ const Analytics = () => {
 
     const SimpleBarChart = ({ data, dataKey, color = '#1a237e' }) => {
         const maxValue = getMaxValue(data, dataKey)
-        
+
         return (
             <div className="flex items-end space-x-1 h-40">
                 {data.map((item, index) => (
                     <div key={index} className="flex-1 flex flex-col items-center">
-                        <div 
+                        <div
                             className="w-full rounded-t-sm transition-all duration-300 hover:opacity-80"
-                            style={{ 
+                            style={{
                                 height: `${(item[dataKey] / maxValue) * 100}%`,
                                 backgroundColor: color,
                                 minHeight: '4px'
@@ -112,7 +106,7 @@ const Analytics = () => {
                             const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`
                             const strokeDashoffset = -currentAngle * circumference / 100
                             currentAngle += percentage
-                            
+
                             return (
                                 <circle
                                     key={index}
@@ -132,7 +126,7 @@ const Analytics = () => {
                 <div className="ml-6 space-y-2">
                     {data.map((item, index) => (
                         <div key={index} className="flex items-center">
-                            <div 
+                            <div
                                 className="w-3 h-3 rounded-full mr-2"
                                 style={{ backgroundColor: item.color }}
                             />
@@ -150,7 +144,7 @@ const Analytics = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Analytiques & Rapports</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Analytiques & Rapports</h2>
                     <p className="text-gray-600">Analyse détaillée des performances de votre boutique</p>
                 </div>
                 <div className="flex gap-3">
@@ -176,7 +170,7 @@ const Analytics = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Chiffre d'affaires</p>
-                            <p className="text-2xl font-bold text-gray-900">{formatPrice(totalRevenue)}</p>
+                            <p className="text-xl font-bold text-gray-900">{formatPrice(totalRevenue)}</p>
                         </div>
                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                             <TrendingUpIcon className="w-6 h-6 text-green-600" />
@@ -193,7 +187,7 @@ const Analytics = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Commandes</p>
-                            <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                            <p className="text-xl font-bold text-gray-900">{totalOrders}</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                             <ChartBarIcon className="w-6 h-6 text-blue-600" />
@@ -210,7 +204,7 @@ const Analytics = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Panier moyen</p>
-                            <p className="text-2xl font-bold text-gray-900">{formatPrice(avgOrderValue)}</p>
+                            <p className="text-xl font-bold text-gray-900">{formatPrice(avgOrderValue)}</p>
                         </div>
                         <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                             <TrendingUpIcon className="w-6 h-6 text-purple-600" />
@@ -227,7 +221,7 @@ const Analytics = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Taux de conversion</p>
-                            <p className="text-2xl font-bold text-gray-900">3.2%</p>
+                            <p className="text-xl font-bold text-gray-900">3.2%</p>
                         </div>
                         <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                             <TrendingUpIcon className="w-6 h-6 text-orange-600" />
@@ -257,9 +251,9 @@ const Analytics = () => {
                             <option value="customers">Nouveaux clients</option>
                         </select>
                     </div>
-                    <SimpleBarChart 
-                        data={currentData} 
-                        dataKey={chartType} 
+                    <SimpleBarChart
+                        data={currentData}
+                        dataKey={chartType}
                         color={chartType === 'revenue' ? '#1a237e' : chartType === 'orders' ? '#ff6d00' : '#4caf50'}
                     />
                 </div>
@@ -276,8 +270,8 @@ const Analytics = () => {
                 {/* Top Customers */}
                 <div className="bg-white p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900">Top Clients</h3>
-                        <button className="text-soni-navy hover:text-soni-navy/80 text-sm font-medium">
+                        <h3 className="text-lg font-semibold text-gray-900">Top Clients</h3>                        
+                        <button className="group flex justify-center items-center p-2 border border-transparent text-base font-bold rounded-xl text-white bg-blue-400  hover:bg-blue-500 focus:outline-none focus:ring-4 focus:ring-soni-navy/30  transition-all duration-200 shadow-lg hover:shadow-xl  hover:cursor-pointer">
                             Voir tout
                         </button>
                     </div>
@@ -285,7 +279,7 @@ const Analytics = () => {
                         {topCustomers.map((customer, index) => (
                             <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                 <div className="flex items-center">
-                                    <div className="w-10 h-10 bg-soni-navy rounded-full flex items-center justify-center text-white font-medium">
+                                    <div className="w-10 h-10 bg-soni-navy rounded-full flex items-center justify-center text-primary font-medium">
                                         {customer.name.charAt(0)}
                                     </div>
                                     <div className="ml-3">
@@ -317,7 +311,7 @@ const Analytics = () => {
                                 <div className="bg-green-500 h-2 rounded-full" style={{ width: '94%' }}></div>
                             </div>
                         </div>
-                        
+
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-gray-600">Taux de fidélisation</span>
@@ -362,7 +356,7 @@ const Analytics = () => {
                             <p className="text-sm text-gray-600">Export PDF/Excel</p>
                         </div>
                     </button>
-                    
+
                     <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
                         <ChartBarIcon className="w-8 h-8 text-soni-orange mr-3" />
                         <div className="text-left">
@@ -370,7 +364,7 @@ const Analytics = () => {
                             <p className="text-sm text-gray-600">Rapport détaillé</p>
                         </div>
                     </button>
-                    
+
                     <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
                         <EyeIcon className="w-8 h-8 text-green-600 mr-3" />
                         <div className="text-left">

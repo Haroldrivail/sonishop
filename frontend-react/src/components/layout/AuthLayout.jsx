@@ -9,7 +9,7 @@ function AuthLayout({ children, title, subtitle }) {
                 {/* Section gauche - Branding Sonitelecom */}
                 <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
                     {/* Gradient de fond avec les couleurs Sonitelecom */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-soni-navy via-soni-navy/95 to-blue-900"></div>
+                    <div className="absolute inset-0 bg-blue-900"></div>
 
                     {/* Motifs géométriques inspirés de la charte */}
                     <div className="absolute inset-0 opacity-10">
@@ -33,7 +33,7 @@ function AuthLayout({ children, title, subtitle }) {
                                 </div>
                                 <div>
                                     <h1 className="text-3xl font-bold">
-                                        <Link to="/" className="text-2xl font-bold text-soni-navy">
+                                        <Link to="/" className="text-xl font-bold text-soni-navy">
                                             <span className="text-accent-400">SONI</span>
                                             <span className="text-white">SHOP</span>
                                         </Link>
@@ -120,7 +120,7 @@ function AuthLayout({ children, title, subtitle }) {
                                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                                     </svg>
                                 </div>
-                                <div className="text-2xl font-bold">
+                                <div className="text-xl font-bold">
                                     <span className="text-soni-navy">SONI</span>
                                     <span className="text-gray-800">SHOP</span>
                                 </div>
@@ -146,8 +146,8 @@ function AuthLayout({ children, title, subtitle }) {
 
                         {/* Footer */}
                         <div className="mt-8 pt-6 border-t border-gray-200">
-                            <p className="text-center text-sm text-gray-500">
-                                © 2024 SoniShop by Sonitelecom. Tous droits réservés.
+                            <p className="text-center text-sm text-gray-200">
+                                © 2025 SoniShop by Sonitelecom. Tous droits réservés.
                             </p>
                         </div>
                     </div>

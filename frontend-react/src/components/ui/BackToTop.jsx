@@ -39,17 +39,17 @@ const BackToTop = () => {
     >
       <button
         onClick={scrollToTop}
-        className="cursor-pointer group relative bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-soni-navy/20"
+        className="cursor-pointer group relative bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-soni-navy/20"
         aria-label="Retour en haut"
       >
         {/* Effet de brillance */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
         
         {/* Icône avec animation */}
-        <ArrowUpIcon className="w-6 h-6 relative z-10 group-hover:animate-bounce" />
+        <ArrowUpIcon className="w-5 h-5 relative z-10 group-hover:animate-bounce" />
         
         {/* Badge avec compteur de scroll (optionnel) */}
-        <div className="absolute -top-2 -right-2 bg-soni-orange text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute -top-1 -right-1 bg-soni-orange text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           ↑
         </div>
       </button>

@@ -459,14 +459,15 @@ const SettingsManagement = () => {
             <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Paramètres de Facturation</h3>
                 
-                <div className="bg-gradient-to-r from-soni-navy to-blue-800 rounded-xl p-6 text-white mb-6">
+                <div className="bg-blue-800 rounded-xl p-6 text-white mb-6">
+                {/* <div className="bg-gradient-to-r from-soni-navy to-blue-800 rounded-xl p-6 text-white mb-6"> */}
                     <div className="flex items-center justify-between">
                         <div>
                             <h4 className="text-lg font-semibold">Plan Actuel: Professional</h4>
                             <p className="text-blue-100">Accès complet à toutes les fonctionnalités</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-2xl font-bold">45,000 FCFA</p>
+                            <p className="text-xl font-bold">45,000 FCFA</p>
                             <p className="text-blue-100">par mois</p>
                         </div>
                     </div>
@@ -549,7 +550,7 @@ const SettingsManagement = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <h1 className="text-xl font-bold text-gray-900 flex items-center">
                         <div className="w-8 h-8 bg-gradient-to-br from-gray-500 to-slate-600 rounded-lg flex items-center justify-center mr-3">
                             <CogIcon className="h-5 w-5 text-white" />
                         </div>
@@ -583,8 +584,8 @@ const SettingsManagement = () => {
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                                         isActive
-                                            ? 'bg-soni-orange text-white shadow-lg'
-                                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                                            ? 'bg-blue-100 text-white shadow-lg'
+                                            : 'text-gray-700 hover:bg-blue-50 hover:text-gray-900'
                                     }`}
                                 >
                                     <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400'}`} />

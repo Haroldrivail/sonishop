@@ -82,8 +82,8 @@ const TestimonialCarousel = () => {
   }
 
   return (
-    <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 bg-blue-50 w-full">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* En-tête */}
         <div className="text-center mb-12">
@@ -96,8 +96,8 @@ const TestimonialCarousel = () => {
         </div>
 
         {/* Carrousel de témoignages */}
-        <div className="relative">
-          <div className="bg-white rounded-3xl shadow-xl p-8 lg:p-12 text-center relative overflow-hidden">
+        <div className="relative w-full">
+          <div className="bg-white rounded-3xl shadow-xl p-8 lg:p-12 text-center relative overflow-hidden w-full">
             
             {/* Décoration de fond */}
             <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-soni-orange/10 to-transparent rounded-full transform -translate-x-16 -translate-y-16"></div>
@@ -143,14 +143,14 @@ const TestimonialCarousel = () => {
           {/* Boutons de navigation */}
           <button
             onClick={prevTestimonial}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-soni-navy hover:shadow-xl transition-all duration-300"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-blue-50 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-soni-navy hover:shadow-xl transition-all duration-300"
           >
             <ChevronLeftIcon className="w-6 h-6" />
           </button>
           
           <button
             onClick={nextTestimonial}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-soni-navy hover:shadow-xl transition-all duration-300"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-blue-50 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-soni-navy hover:shadow-xl transition-all duration-300"
           >
             <ChevronRightIcon className="w-6 h-6" />
           </button>
@@ -164,7 +164,7 @@ const TestimonialCarousel = () => {
               onClick={() => setCurrentTestimonial(index)}
               className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 index === currentTestimonial
-                  ? 'bg-soni-orange scale-110'
+                  ? 'bg-blue-500 scale-110'
                   : 'bg-gray-300 hover:bg-gray-400'
               }`}
             />

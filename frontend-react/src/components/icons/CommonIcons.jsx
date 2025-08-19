@@ -166,48 +166,6 @@ export function ArrowPathIcon({ className = "h-5 w-5" }) {
     )
 }
 
-// export function EyeIcon({ className = "h-5 w-5 text-gray-400" }) {
-//   return (
-//     <svg 
-//       className={className} 
-//       fill="none" 
-//       viewBox="0 0 24 24" 
-//       stroke="currentColor"
-//     >
-//       <path 
-//         strokeLinecap="round" 
-//         strokeLinejoin="round" 
-//         strokeWidth={2} 
-//         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
-//       />
-//       <path 
-//         strokeLinecap="round" 
-//         strokeLinejoin="round" 
-//         strokeWidth={2} 
-//         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
-//       />
-//     </svg>
-//   )
-// }
-
-// export function EyeOffIcon({ className = "h-5 w-5 text-gray-400" }) {
-//   return (
-//     <svg 
-//       className={className} 
-//       fill="none" 
-//       viewBox="0 0 24 24" 
-//       stroke="currentColor"
-//     >
-//       <path 
-//         strokeLinecap="round" 
-//         strokeLinejoin="round" 
-//         strokeWidth={2} 
-//         d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" 
-//       />
-//     </svg>
-//   )
-// }
-
 export const ShieldCheckIcon = ({ className = "w-6 h-6", ...props }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -387,7 +345,7 @@ export const TrendingUpIcon = ({ className = "w-5 h-5", ...props }) => (
 
 export const HomeIcon = ({ className = "w-5 h-5", ...props }) => (
     <svg className={className} {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7-2 2m-5 5v6a1 1 0 001 1h3a1 1 0 001-1v-6m-8 0v6a1 1 0 001 1h3a1 1 0 001-1v-6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
     </svg>
 )
 

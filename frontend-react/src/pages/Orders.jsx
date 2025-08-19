@@ -108,10 +108,21 @@ const Orders = () => {
 
   useEffect(() => {
     // Simuler le chargement des commandes
-    setTimeout(() => {
-      setOrders(mockOrders)
+    const loadOrders = () => {
+      // Charger les commandes depuis localStorage
+      const savedOrders = JSON.parse(localStorage.getItem('sonishop_orders') || '[]')
+      
+      // Combiner avec les commandes mockées pour la démo
+      const combinedOrders = [...savedOrders, ...mockOrders]
+      
+      // Trier par date (plus récentes en premier)
+      const sortedOrders = combinedOrders.sort((a, b) => new Date(b.date) - new Date(a.date))
+      
+      setOrders(sortedOrders)
       setLoading(false)
-    }, 1000)
+    }
+    
+    setTimeout(loadOrders, 1000)
   }, [])
 
   const formatPrice = (price) => {
@@ -232,7 +243,7 @@ const Orders = () => {
           // État vide
           <div className="text-center py-16">
             <ShoppingCartIcon className="h-24 w-24 text-gray-300 mx-auto mb-6" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
               {selectedStatus === 'all' ? 'Aucune commande' : `Aucune commande ${statusOptions.find(opt => opt.value === selectedStatus)?.label.toLowerCase()}`}
             </h2>
             <p className="text-gray-600 mb-8 max-w-md mx-auto">

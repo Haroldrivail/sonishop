@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useCart } from '../context/CartContext'
+import { useNotification } from '../context/NotificationContext'
 import { 
   ChevronLeftIcon,
   HeartIcon, 
@@ -15,12 +17,14 @@ import {
 
 const ProductDetail = () => {
   const { id } = useParams()
+  const { addToCart, toggleWishlist, isInWishlist } = useCart()
+  const { showCartNotification, showSuccess, showError } = useNotification()
   const [product, setProduct] = useState(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [loading, setLoading] = useState(true)
-  const [isFavorite, setIsFavorite] = useState(false)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   // Données simulées d'un produit
   const mockProduct = {
@@ -116,6 +120,42 @@ const ProductDetail = () => {
     }
   }
 
+  const handleAddToCart = async () => {
+    if (!product.inStock || isAddingToCart) return
+    
+    setIsAddingToCart(true)
+    
+    try {
+      // Simulation d'un délai pour montrer l'état de chargement
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Ajouter le produit au panier avec la quantité sélectionnée
+      const success = addToCart(product, quantity)
+      
+      if (success) {
+        // Afficher la notification de succès avec le produit
+        showCartNotification(product, quantity)
+        
+        // Optionnel: Réinitialiser la quantité à 1 après ajout
+        // setQuantity(1)
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout au panier:', error)
+      showError('Erreur lors de l\'ajout au panier')
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
+
+  const handleToggleFavorite = () => {
+    const wasAdded = toggleWishlist(product)
+    if (wasAdded) {
+      showSuccess('Produit ajouté aux favoris')
+    } else {
+      showSuccess('Produit retiré des favoris')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -146,7 +186,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Produit non trouvé</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Produit non trouvé</h2>
           <Link
             to="/products"
             className="inline-flex items-center px-4 py-2 bg-soni-navy text-white rounded-lg hover:bg-soni-navy/90 transition-colors"
@@ -307,23 +347,21 @@ const ProductDetail = () => {
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <button
-                  disabled={!product.inStock}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
+                  onClick={handleAddToCart}
+                  disabled={!product.inStock || isAddingToCart}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-blue-700 hover:bg-blue-700/90 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform disabled:transform-none cursor-pointer"
                 >
                   <ShoppingCartIcon className="w-5 h-5" />
-                  Ajouter au panier
+                  {isAddingToCart ? 'Ajout en cours...' : 'Ajouter au panier'}
                 </button>
                 <button
-                  onClick={() => setIsFavorite(!isFavorite)}
+                  onClick={handleToggleFavorite}
                   className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <HeartIcon
-                    className={`w-6 h-6 ${isFavorite ? 'text-red-500' : 'text-gray-400'}`}
-                    filled={isFavorite}
+                    className={`w-6 h-6 ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400'}`}
+                    filled={isInWishlist(product.id)}
                   />
-                </button>
-                <button className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <ShareIcon className="w-6 h-6 text-gray-400" />
                 </button>
               </div>
             </div>
@@ -428,7 +466,7 @@ const ProductDetail = () => {
         {/* Related Products */}
         {product.relatedProducts && product.relatedProducts.length > 0 && (
           <div className="mt-16">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">Produits complémentaires</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-8">Produits complémentaires</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {product.relatedProducts.map(relatedProduct => (
                 <Link
