@@ -31,7 +31,7 @@ class ProductController extends Controller
             'is_new' => 'boolean',
             'free_shipping' => 'boolean',
             'sales' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|max:2048', // max 2MB
+            'image' => 'required|string', // ou 'nullable|string' si optionnel, // max 2MB
         ]);
 
         $imagePath = null;
@@ -55,7 +55,11 @@ class ProductController extends Controller
             'image' => $imagePath,
         ]);
 
-        return response()->json($product, 201);
+        return response()->json([
+    'success' => true,
+    'message' => 'Produit créé avec succès',
+    'data' => $product
+], 200);
     }
 
     // Affiche un produit spécifique
@@ -67,49 +71,56 @@ class ProductController extends Controller
 
     // Met à jour un produit
     public function update(Request $request, $id)
-    {
-        $product = Product::findOrFail($id);
+{
+    $product = Product::findOrFail($id);
 
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'sometimes|required|numeric',
-            'sale_price' => 'nullable|numeric',
-            'category' => 'sometimes|required|string|max:100',
-            'rating' => 'nullable|numeric|min:0|max:5',
-            'reviews' => 'nullable|integer|min:0',
-            'in_stock' => 'boolean',
-            'stock' => 'required|integer|min:0',
-            'is_new' => 'boolean',
-            'free_shipping' => 'boolean',
-            'sales' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|max:2048',
-        ]);
+    $request->validate([
+        'name' => 'sometimes|required|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'sometimes|required|numeric',
+        'sale_price' => 'nullable|numeric',
+        'category' => 'sometimes|required|string|max:100',
+        'rating' => 'nullable|numeric|min:0|max:5',
+        'reviews' => 'nullable|integer|min:0',
+        'in_stock' => 'boolean',
+        'stock' => 'required|integer|min:0',
+        'is_new' => 'boolean',
+        'free_shipping' => 'boolean',
+        'sales' => 'nullable|integer|min:0',
+        'image' => 'required|string',
+    ]);
 
-        if ($request->hasFile('image')) {
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
-            $product->image = $request->file('image')->store('products', 'public');
+    if ($request->hasFile('image')) {
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
         }
-
-        $product->name = $request->name ?? $product->name;
-        $product->description = $request->description ?? $product->description;
-        $product->price = $request->price ?? $product->price;
-        $product->sale_price = $request->sale_price ?? $product->sale_price;
-        $product->category = $request->category ?? $product->category;
-        $product->rating = $request->rating ?? $product->rating;
-        $product->reviews = $request->reviews ?? $product->reviews;
-        $product->in_stock = $request->has('in_stock') ? $request->in_stock : $product->in_stock;
-        $product->stock = $request->stock ?? $product->stock;
-        $product->is_new = $request->has('is_new') ? $request->is_new : $product->is_new;
-        $product->free_shipping = $request->has('free_shipping') ? $request->free_shipping : $product->free_shipping;
-        $product->sales = $request->sales ?? $product->sales;
-
-        $product->save();
-
-        return response()->json($product);
+        $product->image = $request->file('image')->store('products', 'public');
+    } elseif ($request->filled('image')) {
+        $product->image = $request->input('image');
     }
+
+    $product->name = $request->name ?? $product->name;
+    $product->description = $request->description ?? $product->description;
+    $product->price = $request->price ?? $product->price;
+    $product->sale_price = $request->sale_price ?? $product->sale_price;
+    $product->category = $request->category ?? $product->category;
+    $product->rating = $request->rating ?? $product->rating;
+    $product->reviews = $request->reviews ?? $product->reviews;
+    $product->in_stock = $request->has('in_stock') ? $request->in_stock : $product->in_stock;
+    $product->stock = $request->stock ?? $product->stock;
+    $product->is_new = $request->has('is_new') ? $request->is_new : $product->is_new;
+    $product->free_shipping = $request->has('free_shipping') ? $request->free_shipping : $product->free_shipping;
+    $product->sales = $request->sales ?? $product->sales;
+
+    $product->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Produit mis à jour avec succès',
+        'data' => $product
+    ], 200);
+}
+
 
     // Supprime un produit
     public function destroy($id)
@@ -124,4 +135,19 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Produit supprimé']);
     }
+
+    public function uploadImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|max:2048', // max 2MB
+    ]);
+
+    if ($request->hasFile('image')) {
+        $imagePath = $request->file('image')->store('products', 'public');
+        return response()->json(['imagePath' => $imagePath], 201);
+    }
+
+    return response()->json(['message' => 'Aucune image reçue'], 400);
+}
+
 }

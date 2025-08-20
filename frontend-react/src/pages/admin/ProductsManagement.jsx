@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import axios from 'axios'
+import ProductModal from './utils/ProductModal'
 import {
     ShoppingBagIcon,
     PlusIcon,
@@ -14,79 +16,52 @@ import {
 } from '../../components/icons'
 
 const ProductsManagement = () => {
-    const [products, setProducts] = useState([
-        {
-            id: 1,
-            name: 'iPhone 15 Pro Max',
-            category: 'Smartphones',
-            price: 850000,
-            stock: 25,
-            status: 'active',
-            image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=100',
-            description: 'Dernier modèle iPhone avec caméra avancée',
-            rating: 4.8,
-            sales: 45
-        },
-        {
-            id: 2,
-            name: 'Samsung Galaxy S24',
-            category: 'Smartphones',
-            price: 700000,
-            stock: 18,
-            status: 'active',
-            image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=100',
-            description: 'Smartphone Android haut de gamme',
-            rating: 4.6,
-            sales: 32
-        },
-        {
-            id: 3,
-            name: 'MacBook Air M2',
-            category: 'Ordinateurs',
-            price: 850000,
-            stock: 12,
-            status: 'active',
-            image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=100',
-            description: 'Ordinateur portable ultra-fin',
-            rating: 4.9,
-            sales: 28
-        },
-        {
-            id: 4,
-            name: 'AirPods Pro 2',
-            category: 'Audio',
-            price: 163000,
-            stock: 0,
-            status: 'out_of_stock',
-            image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=100',
-            description: 'Écouteurs sans fil avec réduction de bruit',
-            rating: 4.7,
-            sales: 67
-        },
-        {
-            id: 5,
-            name: 'iPad Pro 12.9"',
-            category: 'Tablettes',
-            price: 680000,
-            stock: 8,
-            status: 'low_stock',
-            image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=100',
-            description: 'Tablette professionnelle avec écran Liquid Retina',
-            rating: 4.8,
-            sales: 19
-        }
-    ])
+    const [products, setProducts] = useState([])
 
     const [searchTerm, setSearchTerm] = useState('')
     const [filterCategory, setFilterCategory] = useState('all')
     const [filterStatus, setFilterStatus] = useState('all')
     const [sortBy, setSortBy] = useState('name')
     const [sortOrder, setSortOrder] = useState('asc')
-    const [showAddModal, setShowAddModal] = useState(false)
+    const [showModal, setShowModal] = useState(false)
+    const [modalMode, setModalMode] = useState('create') // 'create' or 'edit'
     const [selectedProduct, setSelectedProduct] = useState(null)
 
     const categories = ['all', 'Smartphones', 'Ordinateurs', 'Audio', 'Tablettes', 'Accessoires']
     const statuses = ['all', 'active', 'out_of_stock', 'low_stock', 'inactive']
+
+    const fetchProducts = async () => {
+        try {
+            const response = await axios.get('http://public.test/api/products');
+            const productsWithStatus = response.data.map(p => ({
+                ...p,
+                status: getStatusFromLogic(p),
+            }));
+            setProducts(productsWithStatus);
+        } catch (error) {
+            console.error('Erreur lors du chargement des produits', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchProducts();
+    }, []);
+
+
+
+    const getStatusFromLogic = (product) => {
+        const createdAt = new Date(product.created_at)
+        const now = new Date()
+        const daysSinceCreation = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24))
+
+        if (product.stock === 0) return 'out_of_stock'
+        if (product.stock > 0 && product.stock < 5) return 'low_stock'
+        if (daysSinceCreation > 30 && product.sales === 0) return 'inactive'
+
+        return 'active'
+    }
+
+
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -120,7 +95,7 @@ const ProductsManagement = () => {
     const filteredProducts = products
         .filter(product => {
             const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                product.category.toLowerCase().includes(searchTerm.toLowerCase())
+                product.category.toLowerCase().includes(searchTerm.toLowerCase())
             const matchesCategory = filterCategory === 'all' || product.category === filterCategory
             const matchesStatus = filterStatus === 'all' || product.status === filterStatus
             return matchesSearch && matchesCategory && matchesStatus
@@ -128,12 +103,12 @@ const ProductsManagement = () => {
         .sort((a, b) => {
             let aVal = a[sortBy]
             let bVal = b[sortBy]
-            
+
             if (sortBy === 'price' || sortBy === 'stock' || sortBy === 'sales') {
                 aVal = Number(aVal)
                 bVal = Number(bVal)
             }
-            
+
             if (sortOrder === 'asc') {
                 return aVal > bVal ? 1 : -1
             } else {
@@ -157,12 +132,60 @@ const ProductsManagement = () => {
         >
             <span>{children}</span>
             {sortBy === field && (
-                sortOrder === 'asc' ? 
-                <ChevronUpIcon className="h-4 w-4" /> : 
-                <ChevronDownIcon className="h-4 w-4" />
+                sortOrder === 'asc' ?
+                    <ChevronUpIcon className="h-4 w-4" /> :
+                    <ChevronDownIcon className="h-4 w-4" />
             )}
         </button>
     )
+
+    const handleSaveProduct = (productData) => {
+        if (selectedProduct) {
+            // Edition d'un produit
+            axios.put(`http://public.test/api/products/${selectedProduct.id}`, productData)
+                .then(response => {
+                    // Mettre à jour la liste des produits avec la nouvelle version
+                    setProducts(products.map(p => p.id === selectedProduct.id ? response.data : p));
+                    setShowModal(false);
+                    setSelectedProduct(null);
+                })
+                .catch(error => console.error(error));
+        } else {
+            // Ajout d'un produit
+            axios.post('http://public.test/api/products', productData)
+                .then(response => {
+                    setProducts([...products, response.data]);
+                    setShowModal(false);
+                })
+                .catch(error => console.error(error));
+        }
+    };
+
+    const handleEditProduct = (product) => {
+        setSelectedProduct(product);
+        setModalMode('edit');
+        setShowModal(true);
+    }
+
+    const handleaddclick = () => {
+        setSelectedProduct(null);  // IMPORTANT : pas de produit sélectionné = ajout
+        setModalMode('create');
+        setShowModal(true);
+    }
+
+    const handleDeleteProduct = async (productId) => {
+        if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
+
+        try {
+            await axios.delete(`http://public.test/api/products/${productId}`);
+            setProducts(products.filter(p => p.id !== productId));
+        } catch (error) {
+            console.error('Erreur lors de la suppression', error);
+            alert('Une erreur est survenue lors de la suppression.');
+        }
+    };
+
+
 
     return (
         <div className="space-y-6">
@@ -178,8 +201,12 @@ const ProductsManagement = () => {
                     <p className="text-gray-600 mt-1">Gérez votre catalogue de produits SoniShop</p>
                 </div>
                 <button
-                    onClick={() => setShowAddModal(true)}
-                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-soni-orange to-accent-700 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200"
+                    onClick={() => {
+                        setSelectedProduct(null);  // IMPORTANT : pas de produit sélectionné = ajout
+                        setModalMode('create');
+                        setShowModal(true);
+                    }}
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200"
                 >
                     <PlusIcon className="h-4 w-4 mr-2" />
                     Ajouter un Produit
@@ -306,6 +333,10 @@ const ProductsManagement = () => {
                                 <th className="px-6 py-3 text-left">
                                     <SortButton field="status">Statut</SortButton>
                                 </th>
+                                <th className="px-6 py-3 text-left">
+                                    <SortButton field="created_at">Créé le</SortButton>
+                                </th>
+
                                 <th className="px-6 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -314,25 +345,43 @@ const ProductsManagement = () => {
                                 <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
-                                            <img 
-                                                className="h-12 w-12 rounded-lg object-cover shadow-sm" 
-                                                src={product.image} 
+                                            <img
+                                                className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                                src={
+                                                    product.image?.startsWith('http')
+                                                        ? product.image
+                                                        : `http://public.test/storage/${product.image}`
+                                                }
                                                 alt={product.name}
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none'
-                                                    e.target.nextSibling.style.display = 'flex'
-                                                }}
                                             />
+
                                             <div className="h-12 w-12 rounded-lg bg-gray-100 items-center justify-center hidden">
                                                 <PhotoIcon className="h-6 w-6 text-gray-400" />
                                             </div>
                                             <div className="ml-4">
                                                 <div className="text-sm font-medium text-gray-900">{product.name}</div>
                                                 <div className="text-sm text-gray-500">{product.description}</div>
-                                                <div className="flex items-center mt-1">
-                                                    <StarIcon className="h-4 w-4 text-yellow-400 fill-current" />
-                                                    <span className="text-sm text-gray-500 ml-1">{product.rating}</span>
+                                                <div className="flex space-x-2 mt-1">
+                                                    {product.is_new && (
+                                                        <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                                                            Nouveau
+                                                        </span>
+                                                    )}
+                                                    {product.free_shipping && (
+                                                        <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                                                            Livraison gratuite
+                                                        </span>
+                                                    )}
                                                 </div>
+
+                                                <div className="flex items-center mt-1 space-x-1 text-sm text-gray-500">
+                                                    <StarIcon className="h-4 w-4 text-yellow-400 fill-current" />
+                                                    <span>{product.rating}</span>
+                                                    {product.reviews !== undefined && (
+                                                        <span className="text-gray-400">({product.reviews} avis)</span>
+                                                    )}
+                                                </div>
+
                                             </div>
                                         </div>
                                     </td>
@@ -343,8 +392,16 @@ const ProductsManagement = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-semibold text-gray-900">
-                                            {formatPrice(product.price)}
+                                            {product.sale_price ? (
+                                                <div className="flex flex-col">
+                                                    <span className="line-through text-gray-400">{formatPrice(product.price)}</span>
+                                                    <span className="text-soni-orange font-bold">{formatPrice(product.sale_price)}</span>
+                                                </div>
+                                            ) : (
+                                                formatPrice(product.price)
+                                            )}
                                         </div>
+
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-gray-900">{product.stock} unités</div>
@@ -357,17 +414,35 @@ const ProductsManagement = () => {
                                             {getStatusText(product.status)}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {product.created_at
+                                            ? new Date(product.created_at).toLocaleDateString('fr-FR')
+                                            : '—'}
+                                    </td>
+
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex items-center justify-end space-x-2">
                                             <button className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors">
                                                 <EyeIcon className="h-4 w-4" />
                                             </button>
-                                            <button className="text-soni-orange hover:text-accent-700 p-1 rounded transition-colors">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedProduct(product);
+                                                    setModalMode('edit');
+                                                    setShowModal(true);
+                                                }}
+                                                className="text-soni-orange hover:text-accent-700 p-1 rounded transition-colors"
+                                            >
                                                 <PencilIcon className="h-4 w-4" />
                                             </button>
-                                            <button className="text-red-600 hover:text-red-800 p-1 rounded transition-colors">
+
+                                            <button
+                                                onClick={() => handleDeleteProduct(product.id)}
+                                                className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+                                            >
                                                 <TrashIcon className="h-4 w-4" />
                                             </button>
+
                                         </div>
                                     </td>
                                 </tr>
@@ -396,6 +471,16 @@ const ProductsManagement = () => {
                     </div>
                 </div>
             </div>
+
+            {/* exemple d'appel au modal */}
+            <ProductModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onSuccess={fetchProducts}  // <== ici tu utilises la fonction définie
+                mode={modalMode}
+                initialData={selectedProduct}
+            />
+
         </div>
     )
 }
