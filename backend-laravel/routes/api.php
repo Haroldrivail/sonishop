@@ -34,6 +34,7 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::put('/products/{product}', [ProductController::class, 'update']);
 Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 Route::post('/upload-image', [ProductController::class, 'uploadImage']);
+Route::post('/products/{id}/rate', [ProductController::class, 'rate']);
 
 // Routes protégées
 Route::middleware('auth:sanctum')->group(function () {

@@ -38,7 +38,8 @@ const ProductSection = ({
   viewAllLink = "/products",
   onAddToCart,
   onToggleWishlist,
-  wishlist = []
+  wishlist = [],
+  onVote,
 }) => {
   const [hoveredProduct, setHoveredProduct] = useState(null)
 
@@ -68,6 +69,7 @@ const ProductSection = ({
       </div>
     )
   }
+
 
   return (
     <section className="py-16 bg-white">
@@ -187,11 +189,29 @@ const ProductSection = ({
                   )}
 
                   {/* Rating */}
-                  {product.rating && (
+                  {typeof product.rating === 'number' && (
                     <div className="mb-3">
                       {renderStars(product.rating)}
                     </div>
                   )}
+                  {/* Interaction : voter */}
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600 mr-2">Notez ce produit :</span>
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        onClick={() => {
+                          console.log("Vote button clicked!", product.id);
+
+                          onVote && onVote(product.id, value)
+                        }}
+                        className="text-yellow-400 hover:text-yellow-500"
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+
 
                   {/* Prix */}
                   <div className="flex items-center justify-between">

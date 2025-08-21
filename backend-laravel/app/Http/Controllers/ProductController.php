@@ -146,4 +146,25 @@ class ProductController extends Controller
     return response()->json(['message' => 'Aucune image reçue'], 400);
 }
 
+public function rate(Request $request, $id)
+{
+    $product = Product::findOrFail($id);
+
+    $request->validate([
+        'rating' => 'required|integer|min:1|max:5',
+    ]);
+
+    // Mettre à jour la moyenne (exemple simple)
+    $product->ratings_count += 1;
+    $product->ratings_sum += $request->rating;
+    $product->rating = $product->ratings_sum / $product->ratings_count;
+    $product->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Merci pour votre note !',
+        'rating' => $product->rating,
+    ]);
+}
+
 }

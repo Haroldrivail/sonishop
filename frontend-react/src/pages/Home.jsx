@@ -95,6 +95,30 @@ const Home = () => {
     { number: '99%', label: 'Satisfaction Client' }
   ]
 
+  const handleVote = async (productId, ratingValue) => {
+    try {
+      const response = await api.post(`/products/${productId}/rate`, {
+        rating: ratingValue
+      })
+
+      const updatedRating = response.data.rating
+
+      // Met à jour la note localement
+      setFeaturedProducts(prev =>
+        prev.map(product =>
+          product.id === productId
+            ? { ...product, rating: updatedRating }
+            : product
+        )
+      )
+
+      console.log("Note envoyée :", ratingValue)
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du vote :", error)
+    }
+  }
+
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -248,6 +272,7 @@ const Home = () => {
             onAddToCart={handleAddToCart}
             onToggleWishlist={handleToggleWishlist}
             wishlist={wishlist}
+            onVote={handleVote}
           />
         )}
       </section>
