@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRightIcon, ShoppingCartIcon, HeartIcon, UserIcon, CheckIcon } from '../components/icons'
 import ProductSection from '../components/sections/ProductSection'
@@ -6,133 +6,36 @@ import FeaturedCategories from '../components/sections/FeaturedCategories'
 import SpecialOffers from '../components/sections/SpecialOffers'
 import TestimonialCarousel from '../components/sections/TestimonialCarousel'
 import { useAuth } from '../context/AuthContext' // Ajoutez cette ligne en haut
+import api from '../axios' // Assurez-vous d'importer votre API
+import { transformProduct } from '../components/sections/ProductSection'
 
 
 const Home = () => {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
   const { isAuthenticated } = useAuth()
+  const [featuredProducts, setFeaturedProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Données des produits en vedette (sélection des meilleurs produits)
-  const featuredProducts = [
-    {
-      id: 1,
-      name: 'iPhone 15 Pro Max',
-      category: 'smartphones',
-      price: 915000,
-      salePrice: 850000,
-      image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400',
-      description: 'Le smartphone le plus avancé d\'Apple avec puce A17 Pro et caméra révolutionnaire.',
-      rating: 4.8,
-      reviews: 324,
-      inStock: true,
-      isNew: true,
-      freeShipping: true,
-      sales: 1250
-    },
-    {
-      id: 2,
-      name: 'MacBook Pro 16"',
-      category: 'laptops',
-      price: 1635000,
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
-      description: 'Ordinateur portable professionnel avec puce M3 Pro pour les créatifs.',
-      rating: 4.9,
-      reviews: 156,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 890
-    },
-    {
-      id: 3,
-      name: 'AirPods Pro 2',
-      category: 'audio',
-      price: 182000,
-      salePrice: 163000,
-      image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=400',
-      description: 'Écouteurs sans fil avec annulation de bruit adaptive et son spatial.',
-      rating: 4.7,
-      reviews: 892,
-      inStock: true,
-      isNew: true,
-      freeShipping: false,
-      sales: 2340
-    },
-    {
-      id: 5,
-      name: 'iPad Pro 12.9"',
-      category: 'tablets',
-      price: 785000,
-      salePrice: 720000,
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400',
-      description: 'Tablette pro avec écran Liquid Retina XDR et puce M2.',
-      rating: 4.8,
-      reviews: 445,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 445
-    },
-    {
-      id: 6,
-      name: 'Sony WH-1000XM5',
-      category: 'audio',
-      price: 261000,
-      salePrice: 248000,
-      image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400',
-      description: 'Casque sans fil avec réduction de bruit leader du marché.',
-      rating: 4.7,
-      reviews: 678,
-      inStock: true,
-      isNew: false,
-      freeShipping: false,
-      sales: 1123
-    },
-    {
-      id: 7,
-      name: 'Router WiFi 6 TP-Link Archer AX73',
-      category: 'electronics',
-      price: 140000,
-      salePrice: 125000,
-      image: 'https://images.unsplash.com/photo-1606904825846-647eb8374a34?w=400',
-      description: 'Routeur WiFi 6 haute performance pour maison connectée.',
-      rating: 4.5,
-      reviews: 256,
-      inStock: true,
-      isNew: true,
-      freeShipping: false,
-      sales: 234
-    },
-    {
-      id: 10,
-      name: 'Onduleur APC 1500VA',
-      category: 'electronics',
-      price: 195000,
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      description: 'Onduleur professionnel pour protection électrique.',
-      rating: 4.8,
-      reviews: 167,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 123
-    },
-    {
-      id: 12,
-      name: 'Dell XPS 13',
-      category: 'laptops',
-      price: 1200000,
-      image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400',
-      description: 'Ultrabook compact et puissant pour professionnels.',
-      rating: 4.5,
-      reviews: 267,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 345
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        setLoading(true)
+        const response = await api.get('/products')
+        const transformed = response.data.map(transformProduct)
+        setFeaturedProducts(transformed)
+
+      } catch (err) {
+        setError('Erreur lors du chargement des produits')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchFeaturedProducts()
+  }, [])
 
   // Gestion du panier
   const handleAddToCart = (product) => {
@@ -329,15 +232,25 @@ const Home = () => {
       <SpecialOffers />
 
       {/* Section des produits en vedette */}
-      <ProductSection
-        title="Produits en Vedette"
-        subtitle="Découvrez notre sélection des meilleurs produits tech du moment"
-        products={featuredProducts}
-        maxProducts={8}
-        onAddToCart={handleAddToCart}
-        onToggleWishlist={handleToggleWishlist}
-        wishlist={wishlist}
-      />
+
+      <section>
+        <h2 className="text-3xl font-bold mb-6">Produits en Vedette</h2>
+
+        {loading && <p>Chargement des produits...</p>}
+        {error && <p className="text-red-600">{error}</p>}
+
+        {!loading && !error && (
+          <ProductSection
+            title="Produits en Vedette"
+            subtitle="Découvrez notre sélection des meilleurs produits tech du moment"
+            products={featuredProducts}
+            maxProducts={8}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlist={wishlist}
+          />
+        )}
+      </section>
 
       {/* Section des témoignages */}
       <TestimonialCarousel />

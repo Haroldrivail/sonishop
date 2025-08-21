@@ -1,19 +1,38 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { 
-  ArrowRightIcon, 
-  StarIcon, 
-  ShoppingCartIcon, 
+import {
+  ArrowRightIcon,
+  StarIcon,
+  ShoppingCartIcon,
   HeartIcon,
   EyeIcon,
   TagIcon,
   TruckIcon
 } from '../icons'
 
-const ProductSection = ({ 
-  title = "Nos Produits", 
-  subtitle = "Découvrez notre sélection", 
-  products = [], 
+export const transformProduct = (product) => ({
+  id: product.id,
+  name: product.name,
+  description: product.description,
+  price: parseFloat(product.price),
+  salePrice: product.sale_price ? parseFloat(product.sale_price) : null,
+  image: product.image,
+  category: product.category,
+  rating: parseFloat(product.rating),
+  reviews: product.reviews || 0,
+  inStock: product.in_stock === 1,
+  stock: product.stock,
+  isNew: product.is_new === 1,
+  freeShipping: product.free_shipping === 1,
+  sales: product.sales,
+  createdAt: product.created_at,
+  updatedAt: product.updated_at
+})
+
+const ProductSection = ({
+  title = "Nos Produits",
+  subtitle = "Découvrez notre sélection",
+  products = [],
   maxProducts = 8,
   showViewAll = true,
   viewAllLink = "/products",
@@ -24,6 +43,7 @@ const ProductSection = ({
   const [hoveredProduct, setHoveredProduct] = useState(null)
 
   const displayProducts = products.slice(0, maxProducts)
+  const IMAGE_BASE_URL = 'http://public.test/storage/'
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -40,9 +60,8 @@ const ProductSection = ({
         {[1, 2, 3, 4, 5].map((star) => (
           <StarIcon
             key={star}
-            className={`w-4 h-4 ${
-              star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-            }`}
+            className={`w-4 h-4 ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+              }`}
           />
         ))}
         <span className="ml-1 text-sm text-gray-600">({rating})</span>
@@ -53,7 +72,7 @@ const ProductSection = ({
   return (
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* En-tête de section */}
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -62,7 +81,7 @@ const ProductSection = ({
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
             {subtitle}
           </p>
-          
+
           {/* Ligne décorative */}
           <div className="flex items-center justify-center">
             <div className="h-1 w-20 bg-gradient-to-r from-soni-navy to-soni-orange rounded-full"></div>
@@ -74,7 +93,7 @@ const ProductSection = ({
           {displayProducts.map(product => {
             const isInWishlist = wishlist.includes(product.id)
             const hasDiscount = product.salePrice && product.salePrice < product.price
-            const discountPercent = hasDiscount 
+            const discountPercent = hasDiscount
               ? Math.round(((product.price - product.salePrice) / product.price) * 100)
               : 0
             const isHovered = hoveredProduct === product.id
@@ -89,11 +108,13 @@ const ProductSection = ({
                 {/* Image du produit */}
                 <div className="relative aspect-square overflow-hidden bg-gray-100">
                   <img
-                    src={product.image}
+                    src={`${IMAGE_BASE_URL}${product.image}`}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  
+
+
+
                   {/* Badges */}
                   <div className="absolute top-3 left-3 flex flex-col gap-1">
                     {hasDiscount && (
@@ -116,20 +137,18 @@ const ProductSection = ({
                   </div>
 
                   {/* Actions hover */}
-                  <div className={`absolute top-3 right-3 flex flex-col gap-2 transition-opacity duration-300 ${
-                    isHovered ? 'opacity-100' : 'opacity-0'
-                  }`}>
+                  <div className={`absolute top-3 right-3 flex flex-col gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'
+                    }`}>
                     <button
                       onClick={() => onToggleWishlist && onToggleWishlist(product.id)}
-                      className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
-                        isInWishlist 
-                          ? 'text-red-500 bg-white/90' 
-                          : 'text-gray-600 bg-white/90 hover:text-red-500'
-                      }`}
+                      className={`p-2 rounded-full backdrop-blur-sm transition-colors ${isInWishlist
+                        ? 'text-red-500 bg-white/90'
+                        : 'text-gray-600 bg-white/90 hover:text-red-500'
+                        }`}
                     >
                       <HeartIcon className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
                     </button>
-                    
+
                     <Link
                       to={`/products/${product.id}`}
                       className="p-2 rounded-full bg-white/90 text-gray-600 hover:text-soni-navy transition-colors"
@@ -139,9 +158,8 @@ const ProductSection = ({
                   </div>
 
                   {/* Bouton d'achat rapide */}
-                  <div className={`absolute bottom-3 left-3 right-3 transition-opacity duration-300 ${
-                    isHovered ? 'opacity-100' : 'opacity-0'
-                  }`}>
+                  <div className={`absolute bottom-3 left-3 right-3 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'
+                    }`}>
                     <button
                       onClick={() => onAddToCart && onAddToCart(product)}
                       disabled={!product.inStock}
@@ -155,13 +173,13 @@ const ProductSection = ({
 
                 {/* Informations du produit */}
                 <div className="p-4">
-                  <Link 
+                  <Link
                     to={`/products/${product.id}`}
                     className="block text-lg font-semibold text-gray-900 hover:text-soni-navy transition-colors line-clamp-2 mb-2"
                   >
                     {product.name}
                   </Link>
-                  
+
                   {product.description && (
                     <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                       {product.description}
