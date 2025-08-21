@@ -34,10 +34,6 @@ class ProductController extends Controller
             'image' => 'required|string', // ou 'nullable|string' si optionnel, // max 2MB
         ]);
 
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
-        }
 
         $product = Product::create([
             'name' => $request->name,
@@ -52,7 +48,7 @@ class ProductController extends Controller
             'is_new' => $request->is_new ?? false,
             'free_shipping' => $request->free_shipping ?? false,
             'sales' => $request->sales,
-            'image' => $imagePath,
+            'image' => $request->image  // Utilise l'URL de l'image ou le chemin du fichier uploadé
         ]);
 
         return response()->json([
@@ -139,7 +135,7 @@ class ProductController extends Controller
     public function uploadImage(Request $request)
 {
     $request->validate([
-        'image' => 'required|image|max:2048', // max 2MB
+        'image' => 'required|image|max:3000', // max 3MB
     ]);
 
     if ($request->hasFile('image')) {

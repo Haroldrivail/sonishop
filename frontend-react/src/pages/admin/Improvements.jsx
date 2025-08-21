@@ -18,7 +18,7 @@ const improvementsData = {
             'Modifier (à faire plus tard) Le bouton existe, mais il ne fait encore rien',
             'Imprimer les commandes	Bientôt (le bouton existe, logique à ajouter)',
             'Notifications email ou SMS lors d un changement de statut'
-        
+
         ]
     },
     products: {
@@ -29,18 +29,21 @@ const improvementsData = {
             'Afficher les produits en rupture de stock',
             'Permettre l’import/export en CSV',
             'ajouter un systeme de notification pour les actions importantes',
-           ' Ajouter la suppression des produits (le bouton TrashIcon est cliquable mais inactif actuellement)',
+            ' Ajouter la suppression des produits (le bouton TrashIcon est cliquable mais inactif actuellement)',
             'Ajouter un système de pagination pour les produits',
-'Ajouter des filtres avancés quand on clique sur "Filtres avancés',
-'Ajouter un système de tags ou labels personnalisés sur les produits',
-'Optimiser la performance ou structurer le code différemment (ex: séparer les composants)',
-'Ajouter des notifications/toasts au succès ou à l’échec d’une action (ajout, édition, suppression)',
-'Intégrer un loader/spinner pendant le chargement des données',
-'Tu crées une interface qui affiche toutes les images uploadées',
-'Tu ajoutes une API pour récupérer/supprimer ces images',
-'Tu peux appeler cette page depuis un bouton dans ton admin pour gérer les images orphelines',
-'Tu évites ainsi que des images inutilisées s’accumulent.',
-'Ajouter un système de nettoyage automatique des images non utilisées',
+            'Ajouter des filtres avancés quand on clique sur "Filtres avancés',
+            'Ajouter un système de tags ou labels personnalisés sur les produits',
+            'Optimiser la performance ou structurer le code différemment (ex: séparer les composants)',
+            'Ajouter des notifications/toasts au succès ou à l’échec d’une action (ajout, édition, suppression)',
+            'Intégrer un loader/spinner pendant le chargement des données',
+            'Tu crées une interface qui affiche toutes les images uploadées',
+            'stocker les images dans un dossier temporaire (temp)',
+            'les déplacer après succès de la création',
+            'ou bien les supprimer si l’utilisateur annule',
+            'Tu ajoutes une API pour récupérer/supprimer ces images',
+            'Tu peux appeler cette page depuis un bouton dans ton admin pour gérer les images orphelines',
+            'Tu évites ainsi que des images inutilisées s’accumulent.',
+            'Ajouter un système de nettoyage automatique des images non utilisées',
         ]
     },
     customers: {

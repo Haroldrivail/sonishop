@@ -95,43 +95,36 @@ const ProductModal = ({ isOpen, onClose, onSuccess, mode = 'create', initialData
 
         setLoading(true);
 
-        // Préparation des données (conversion types)
-        const dataToSend = {
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-            price: Number(formData.price),
-            sale_price: formData.sale_price ? Number(formData.sale_price) : null,
-            stock: Number(formData.stock),
-            image: formData.image.trim(),
-            category: formData.category.trim(),
-            in_stock: formData.in_stock ? 1 : 0,
-            is_new: formData.is_new ? 1 : 0,
-            free_shipping: formData.free_shipping ? 1 : 0,
-            rating: 0,
-            reviews: 0,
-            sales: 0,
-        };
-
-        if (formData.file) {
-            try {
-                const imageUrl = await uploadImage(formData.file); // ⬅️ API Laravel
-                dataToSend.image = imageUrl;
-            } catch (err) {
-                setFormError("L'envoi de l'image a échoué. Veuillez réessayer.");
-                setLoading(false);
-                return;
-            }
-        }
-
-
-
         try {
+            let uploadedImagePath = formData.image.trim(); // Défaut : URL manuelle
+
+            // Si fichier image, on l'upload
+            if (formData.file) {
+                uploadedImagePath = await uploadImage(formData.file);
+            }
+
+            // ⬅️ maintenant qu'on a l'image (via URL ou fichier), on construit les données
+            const dataToSend = {
+                name: formData.name.trim(),
+                description: formData.description.trim(),
+                price: Number(formData.price),
+                sale_price: formData.sale_price ? Number(formData.sale_price) : null,
+                stock: Number(formData.stock),
+                image: uploadedImagePath, // ✅ correctement défini ici
+                category: formData.category.trim(),
+                in_stock: formData.in_stock ? 1 : 0,
+                is_new: formData.is_new ? 1 : 0,
+                free_shipping: formData.free_shipping ? 1 : 0,
+                rating: 0,
+                reviews: 0,
+                sales: 0,
+            };
+
+            // Appel à l'API
             let result;
             if (mode === 'create') {
-                // TODO: remplacer par ton appel API création produit
                 result = await createProduct(dataToSend);
             } else {
-                // TODO: remplacer par ton appel API mise à jour produit
                 result = await updateProduct(initialData.id, dataToSend);
             }
 
@@ -142,11 +135,13 @@ const ProductModal = ({ isOpen, onClose, onSuccess, mode = 'create', initialData
                 setFormError(result.message || 'Erreur lors de la sauvegarde');
             }
         } catch (err) {
-            setFormError('Erreur serveur, veuillez réessayer');
+            console.error('Erreur lors de la création:', err);
+            setFormError("Erreur serveur, veuillez réessayer.");
         } finally {
             setLoading(false);
         }
     };
+
 
     const uploadImage = async (file) => {
         const formData = new FormData();
@@ -158,6 +153,8 @@ const ProductModal = ({ isOpen, onClose, onSuccess, mode = 'create', initialData
                     'Content-Type': 'multipart/form-data',
                 },
             });
+            console.log('Image Upload Response:', response.data); // <-- à garder pour déboguer
+
             return response.data.imagePath; // Assurez-vous que l'API retourne l'URL de l'image
         } catch (error) {
             console.error('Erreur lors de l\'upload de l\'image:', error);
@@ -243,7 +240,7 @@ const ProductModal = ({ isOpen, onClose, onSuccess, mode = 'create', initialData
                             value={formData.price}
                             onChange={handleChange}
                             className={`w-full px-4 py-2 border rounded-lg shadow-sm ${formErrors.price ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                            placeholder="Prix en €"
+                            placeholder="Prix en FCFA"
                             min="0"
                             step="0.01"
                             required
@@ -261,7 +258,7 @@ const ProductModal = ({ isOpen, onClose, onSuccess, mode = 'create', initialData
                             value={formData.sale_price}
                             onChange={handleChange}
                             className={`w-full px-4 py-2 border rounded-lg shadow-sm ${formErrors.sale_price ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                            placeholder="Prix promo en €"
+                            placeholder="Prix promo en FCFA"
                             min="0"
                             step="0.01"
                         />
