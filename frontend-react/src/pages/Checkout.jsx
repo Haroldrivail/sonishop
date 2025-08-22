@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import ModalCheckout from './ModalCheckout'
+import axios from '../axios'
 import {
     ChevronLeftIcon,
     CreditCardIcon,
@@ -9,14 +11,15 @@ import {
     LockClosedIcon,
     PhoneIcon,
     UserIcon,
-    XIcon,
+    XMarkIcon,
     EyeIcon,
-    EyeOffIcon
+    EyeSlashIcon
 } from '../components/icons/index'
 import { useCart } from '../context/CartContext'
 import { useToast } from '../context/ToastContext'
 import { useNotification } from '../context/NotificationContext'
 import { useAuth } from '../context/AuthContext'
+import ConfirmDialog from './ConfirmDialog'
 
 const Checkout = () => {
     const navigate = useNavigate()
@@ -24,6 +27,7 @@ const Checkout = () => {
     const { showToast } = useToast()
     const { showSuccess, showError } = useNotification()
     const { user, isAuthenticated, login, register } = useAuth()
+    const [paymentMethod, setPaymentMethod] = useState('')
 
     // États principaux
     const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -170,46 +174,17 @@ const Checkout = () => {
 
     // Confirmer le paiement - Afficher la boîte de dialogue
     const handleConfirmPayment = () => {
+        console.log('handleConfirmPayment triggered') // ← ajout pour test
+
         if (!validateUserInfo()) return
 
+        if (!paymentMethod) {
+            showToast('Veuillez sélectionner une méthode de paiement', 'error')
+            return
+        }
         const orderNum = 'SN' + Date.now().toString().slice(-8)
         setOrderNumber(orderNum)
         setShowConfirmDialog(true)
-    }
-
-    // Finaliser la commande
-    const handleFinalizeOrder = async () => {
-        setIsProcessing(true)
-
-        try {
-            await new Promise(resolve => setTimeout(resolve, 2000))
-
-            const orderData = {
-                id: orderNumber,
-                items: cart,
-                userInfo,
-                deliveryMode,
-                subtotal,
-                shipping,
-                total,
-                date: new Date().toISOString(),
-                status: 'confirmed',
-                estimatedDelivery: getEstimatedDeliveryDate()
-            }
-
-            const existingOrders = JSON.parse(localStorage.getItem('sonishop_orders') || '[]')
-            existingOrders.push(orderData)
-            localStorage.setItem('sonishop_orders', JSON.stringify(existingOrders))
-
-            clearCart()
-            showSuccess('Commande confirmée avec succès !')
-            navigate('/order-tracking', { state: { orderId: orderNumber } })
-
-        } catch (error) {
-            showError('Erreur lors de la finalisation de la commande')
-        } finally {
-            setIsProcessing(false)
-        }
     }
 
     const getEstimatedDeliveryDate = () => {
@@ -463,6 +438,59 @@ const Checkout = () => {
                             </div>
                         </div>
 
+                        {/* Méthode de paiement */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                                💳 Méthode de paiement
+                            </h2>
+
+                            <div className="space-y-3">
+                                <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'credit_card' ? 'border-soni-navy bg-soni-navy/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        value="credit_card"
+                                        checked={paymentMethod === 'credit_card'}
+                                        onChange={(e) => setPaymentMethod(e.target.value)}
+                                        className="hidden"
+                                    />
+                                    <div className={`w-4 h-4 rounded-full border-2 mr-3 ${paymentMethod === 'credit_card' ? 'border-soni-navy bg-soni-navy' : 'border-gray-300'}`}>
+                                        {paymentMethod === 'credit_card' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                                    </div>
+                                    Carte bancaire
+                                </label>
+
+                                <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'mobile_money' ? 'border-soni-navy bg-soni-navy/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        value="mobile_money"
+                                        checked={paymentMethod === 'mobile_money'}
+                                        onChange={(e) => setPaymentMethod(e.target.value)}
+                                        className="hidden"
+                                    />
+                                    <div className={`w-4 h-4 rounded-full border-2 mr-3 ${paymentMethod === 'mobile_money' ? 'border-soni-navy bg-soni-navy' : 'border-gray-300'}`}>
+                                        {paymentMethod === 'mobile_money' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                                    </div>
+                                    Mobile Money
+                                </label>
+
+                                <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'cash_on_delivery' ? 'border-soni-navy bg-soni-navy/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        value="cash_on_delivery"
+                                        checked={paymentMethod === 'cash_on_delivery'}
+                                        onChange={(e) => setPaymentMethod(e.target.value)}
+                                        className="hidden"
+                                    />
+                                    <div className={`w-4 h-4 rounded-full border-2 mr-3 ${paymentMethod === 'cash_on_delivery' ? 'border-soni-navy bg-soni-navy' : 'border-gray-300'}`}>
+                                        {paymentMethod === 'cash_on_delivery' && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
+                                    </div>
+                                    Paiement à la livraison
+                                </label>
+                            </div>
+                        </div>
                         {/* Bouton de confirmation */}
                         <button
                             onClick={handleConfirmPayment}
@@ -521,255 +549,39 @@ const Checkout = () => {
             </div>
 
             {/* Modal d'authentification */}
-            {showAuthModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold">
-                                {authMode === 'login' ? 'Se connecter' : 'Créer un compte'}
-                            </h2>
-                            <button
-                                onClick={() => setShowAuthModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <XIcon className="w-6 h-6" />
-                            </button>
-                        </div>
+            <ModalCheckout
+                showAuthModal={showAuthModal}
+                setShowAuthModal={setShowAuthModal}
+                authMode={authMode}
+                setAuthMode={setAuthMode}
+                authInfo={authInfo}
+                updateAuthInfo={updateAuthInfo}
+                handleAuth={handleAuth}
+                isProcessing={isProcessing}
+                showPassword={showPassword}
+                setShowPassword={setShowPassword}
+            />
+            <ConfirmDialog
+                showConfirmDialog={showConfirmDialog}
+                setShowConfirmDialog={setShowConfirmDialog}
+                orderNumber={orderNumber}
+                userInfo={userInfo}
+                deliveryOptions={deliveryOptions}
+                deliveryMode={deliveryMode}
+                getEstimatedDeliveryDate={getEstimatedDeliveryDate}
+                cart={cart}
+                subtotal={subtotal}
+                shipping={shipping}
+                total={total}
+                formatPrice={formatPrice}
+                clearCart={clearCart}
+                showSuccess={showSuccess}
+                showError={showError}
+                navigate={navigate}
+                paymentMethod={paymentMethod}  // assure-toi que paymentMethod est bien dans le state ou props du parent
 
-                        <form onSubmit={handleAuth} className="space-y-4">
-                            {authMode === 'register' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Prénom
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={authInfo.firstName}
-                                            onChange={(e) => updateAuthInfo('firstName', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-navy focus:border-transparent"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Nom
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={authInfo.lastName}
-                                            onChange={(e) => updateAuthInfo('lastName', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-navy focus:border-transparent"
-                                            required
-                                        />
-                                    </div>
-                                </>
-                            )}
+            />
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={authInfo.email}
-                                    onChange={(e) => updateAuthInfo('email', e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-navy focus:border-transparent"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Mot de passe
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={authInfo.password}
-                                        onChange={(e) => updateAuthInfo('password', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-navy focus:border-transparent pr-10"
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                                    >
-                                        {showPassword ? (
-                                            <EyeOffIcon className="w-5 h-5 text-gray-400" />
-                                        ) : (
-                                            <EyeIcon className="w-5 h-5 text-gray-400" />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {authMode === 'register' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Confirmer le mot de passe
-                                    </label>
-                                    <input
-                                        type="password"
-                                        value={authInfo.confirmPassword}
-                                        onChange={(e) => updateAuthInfo('confirmPassword', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-navy focus:border-transparent"
-                                        required
-                                    />
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={isProcessing}
-                                className="w-full py-3 bg-soni-navy text-white font-semibold rounded-lg hover:bg-soni-navy/90 transition-colors disabled:opacity-50"
-                            >
-                                {isProcessing ? (
-                                    <div className="flex items-center justify-center">
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                        Traitement...
-                                    </div>
-                                ) : (
-                                    authMode === 'login' ? 'Se connecter' : 'Créer le compte'
-                                )}
-                            </button>
-                        </form>
-
-                        <div className="mt-4 text-center">
-                            <button
-                                onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                                className="text-soni-navy hover:text-soni-navy/80 text-sm"
-                            >
-                                {authMode === 'login' ?
-                                    'Pas de compte ? Créer un compte' :
-                                    'Déjà un compte ? Se connecter'
-                                }
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Dialog de confirmation */}
-            {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold">📋 Bon de commande #{orderNumber}</h2>
-                            <button
-                                onClick={() => setShowConfirmDialog(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <XIcon className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Détails de la commande */}
-                        <div className="space-y-6">
-                            {/* Informations client */}
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <h3 className="font-semibold mb-3">👤 Informations client</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="font-medium">Nom:</span> {userInfo.firstName} {userInfo.lastName}
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Email:</span> {userInfo.email}
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Téléphone:</span> {userInfo.phone}
-                                    </div>
-                                    <div className="col-span-2">
-                                        <span className="font-medium">Adresse:</span> {userInfo.address}, {userInfo.city}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Mode de livraison */}
-                            <div className="bg-blue-50 rounded-lg p-4">
-                                <h3 className="font-semibold mb-3">🚚 Livraison</h3>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <span className="text-xl mr-2">{deliveryOptions[deliveryMode].icon}</span>
-                                        <div>
-                                            <div className="font-medium">{deliveryOptions[deliveryMode].label}</div>
-                                            <div className="text-sm text-gray-600">
-                                                {deliveryMode === 'pickup' ? 'Retrait immédiat' : `Livraison estimée: ${getEstimatedDeliveryDate()}`}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="font-semibold">
-                                        {shipping === 0 ? 'Gratuit' : formatPrice(shipping)}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Articles commandés */}
-                            <div>
-                                <h3 className="font-semibold mb-3">🛍️ Articles commandés</h3>
-                                <div className="space-y-3">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                                            <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
-                                            <div className="flex-1">
-                                                <p className="font-medium">{item.name}</p>
-                                                <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
-                                            </div>
-                                            <p className="font-semibold text-soni-navy">
-                                                {formatPrice((item.salePrice || item.price) * item.quantity)}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Total */}
-                            <div className="bg-soni-navy/5 rounded-lg p-4">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span>Sous-total:</span>
-                                        <span>{formatPrice(subtotal)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Livraison:</span>
-                                        <span>{shipping === 0 ? 'Gratuit' : formatPrice(shipping)}</span>
-                                    </div>
-                                    <hr className="my-2" />
-                                    <div className="flex justify-between text-xl font-bold">
-                                        <span>Total à payer:</span>
-                                        <span className="text-soni-navy">{formatPrice(total)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Boutons d'action */}
-                        <div className="flex gap-4 mt-6">
-                            <button
-                                onClick={() => setShowConfirmDialog(false)}
-                                className="flex-1 py-3 border border-gray-300 text-white font-semibold rounded-lg bg-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                            >
-                                Modifier les informations
-                            </button>
-                            <button
-                                onClick={handleFinalizeOrder}
-                                disabled={isProcessing}
-                                className="flex-1 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                                {isProcessing ? (
-                                    <div className="flex items-center justify-center"> 
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 "></div>
-                                        Finalisation...
-                                    </div>
-                                ) : (
-                                    '✅ Confirmer la commande'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

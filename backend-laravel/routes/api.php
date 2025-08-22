@@ -23,6 +23,8 @@ Route::post('/login', [AuthController::class, 'login']);
 // Route publique pour lister les commandes
 Route::get('/orders', [OrderController::class, 'index']);
 Route::put('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+Route::post('/orders', [OrderController::class, 'store']);
+
 
 // Route publique pour lister les clients
 Route::get('/clients', [ClientController::class, 'index']);
