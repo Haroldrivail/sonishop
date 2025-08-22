@@ -15,6 +15,14 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
+    // Liste tous les produits avec relation category
+    public function indexWithCategory()
+    {
+        $products = Product::with('category')->get();
+        return response()->json($products);
+    }
+
+
     // Crée un nouveau produit avec upload d'image
     public function store(Request $request)
     {

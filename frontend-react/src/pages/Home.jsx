@@ -8,10 +8,13 @@ import TestimonialCarousel from '../components/sections/TestimonialCarousel'
 import { useAuth } from '../context/AuthContext' // Ajoutez cette ligne en haut
 import api from '../axios' // Assurez-vous d'importer votre API
 import { transformProduct } from '../components/sections/ProductSection'
+import { useCart } from '../context/CartContext' // Assure-toi que c’est bien importé
 
 
 const Home = () => {
-  const [cart, setCart] = useState([])
+  const [cartMessage, setCartMessage] = useState(null)
+
+  const { addToCart } = useCart()
   const [wishlist, setWishlist] = useState([])
   const { isAuthenticated } = useAuth()
   const [featuredProducts, setFeaturedProducts] = useState([])
@@ -37,23 +40,23 @@ const Home = () => {
     fetchFeaturedProducts()
   }, [])
 
+  const IMAGE_BASE_URL = 'http://public.test/storage/'
+
+
   // Gestion du panier
   const handleAddToCart = (product) => {
-    setCart(prev => {
-      const existingItem = prev.find(item => item.id === product.id)
-      if (existingItem) {
-        return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      }
-      return [...prev, { ...product, quantity: 1 }]
-    })
-
-    // Notification (vous pouvez ajouter une toast notification ici)
+    addToCart(product, 1)
     console.log('Produit ajouté au panier:', product.name)
+    setCartMessage(`✅ "${product.name}" ajouté au panier !`)
+
+    // Efface le message après 3 secondes
+    setTimeout(() => {
+      setCartMessage(null)
+    }, 3000)
   }
+
+
+
 
   // Gestion de la wishlist
   const handleToggleWishlist = (productId) => {
@@ -254,6 +257,12 @@ const Home = () => {
 
       {/* Section des offres spéciales */}
       <SpecialOffers />
+
+      {cartMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-2 rounded shadow-lg transition-all">
+          {cartMessage}
+        </div>
+      )}
 
       {/* Section des produits en vedette */}
 

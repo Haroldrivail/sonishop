@@ -17,7 +17,10 @@ export const transformProduct = (product) => ({
   price: parseFloat(product.price),
   salePrice: product.sale_price ? parseFloat(product.sale_price) : null,
   image: product.image,
-  category: product.category,
+  category: typeof product.category === 'string'
+    ? product.category
+    : product.category?.name || 'Non défini',
+    categorySlug: product.category?.slug || null, // 👈 Ajout du slug
   rating: parseFloat(product.rating),
   reviews: product.reviews || 0,
   inStock: product.in_stock === 1,
@@ -231,6 +234,7 @@ const ProductSection = ({
                         </span>
                       )}
                     </div>
+
 
                     <div className="text-xs text-gray-500">
                       {product.inStock !== false ? (

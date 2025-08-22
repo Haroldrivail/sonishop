@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const CartContext = createContext()
 
+const IMAGE_BASE_URL = 'http://public.test/storage/';
+
 export const useCart = () => {
   const context = useContext(CartContext)
   if (!context) {
@@ -14,41 +16,11 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
 
-  // Produits de démonstration pour la wishlist
-  const demoProducts = [
-    {
-      id: 1,
-      name: 'iPhone 15 Pro Max',
-      price: 915000,
-      salePrice: 850000,
-      image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400',
-      description: 'Le smartphone le plus avancé d\'Apple avec puce A17 Pro et caméra révolutionnaire.',
-      rating: 4.8,
-      reviews: 324,
-      inStock: true,
-      brand: 'Apple',
-      category: 'smartphones'
-    },
-    {
-      id: 5,
-      name: 'MacBook Pro M3',
-      price: 1635000,
-      salePrice: 1200000,
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
-      description: 'Ordinateur portable professionnel avec puce M3 Pro pour les créatifs.',
-      rating: 4.9,
-      reviews: 156,
-      inStock: true,
-      brand: 'Apple',
-      category: 'laptops'
-    }
-  ]
-
   // Charger les données du localStorage au montage
   useEffect(() => {
     const savedCart = localStorage.getItem('sonishop_cart')
     const savedWishlist = localStorage.getItem('sonishop_wishlist')
-    
+
     if (savedCart) {
       try {
         setCart(JSON.parse(savedCart))
@@ -56,18 +28,17 @@ export const CartProvider = ({ children }) => {
         console.error('Erreur lors du chargement du panier:', error)
       }
     }
-    
+
     if (savedWishlist) {
       try {
         const parsedWishlist = JSON.parse(savedWishlist)
-        setWishlist(parsedWishlist.length > 0 ? parsedWishlist : demoProducts)
+        setWishlist(parsedWishlist)
       } catch (error) {
         console.error('Erreur lors du chargement des favoris:', error)
-        setWishlist(demoProducts)
+        setWishlist([])
       }
     } else {
-      // Si pas de favoris sauvegardés, utiliser les produits de démonstration
-      setWishlist(demoProducts)
+      setWishlist([])
     }
   }, [])
 
@@ -92,10 +63,13 @@ export const CartProvider = ({ children }) => {
             : item
         )
       }
-      return [...prev, { ...product, quantity }]
+      return [...prev, {
+        ...product,
+        image: `${IMAGE_BASE_URL}${product.image}`,  // Transforme avant d’ajouter
+        quantity
+      }]
     })
-    
-    // Notification de succès
+
     return true
   }
 
@@ -108,7 +82,7 @@ export const CartProvider = ({ children }) => {
       removeFromCart(productId)
       return
     }
-    
+
     setCart(prev =>
       prev.map(item =>
         item.id === productId
@@ -151,10 +125,10 @@ export const CartProvider = ({ children }) => {
     const isInWishlist = wishlist.find(item => item.id === product.id)
     if (isInWishlist) {
       removeFromWishlist(product.id)
-      return false // Retiré des favoris
+      return false
     } else {
       addToWishlist(product)
-      return true // Ajouté aux favoris
+      return true
     }
   }
 
@@ -167,22 +141,18 @@ export const CartProvider = ({ children }) => {
   }
 
   const value = {
-    // État du panier
     cart,
     cartItemsCount: getCartItemsCount(),
     cartTotal: getCartTotal(),
-    
-    // Actions du panier
+
     addToCart,
     removeFromCart,
     updateCartQuantity,
     clearCart,
-    
-    // État des favoris
+
     wishlist,
     wishlistCount: wishlist.length,
-    
-    // Actions des favoris
+
     addToWishlist,
     removeFromWishlist,
     toggleWishlist,

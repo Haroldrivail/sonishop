@@ -1,5 +1,13 @@
 import { useState, useMemo } from 'react'
 
+
+const slugify = (text) =>
+  text.toString().toLowerCase()
+    .replace(/\s+/g, '-')           // remplace espaces par tirets
+    .replace(/[^\w\-]+/g, '')       // enlève caractères spéciaux
+    .replace(/\-\-+/g, '-')         // remplace plusieurs tirets par un seul
+    .trim()
+
 export const useProductFilters = (products, initialFilters = {}) => {
   const [filters, setFilters] = useState({
     searchTerm: '',
@@ -15,6 +23,15 @@ export const useProductFilters = (products, initialFilters = {}) => {
     ...initialFilters
   })
 
+  const categoriesSlug = [...new Set(products.map(p => p.categorySlug))];
+  const categoriesNames = [...new Set(products.map(p => p.category))];
+
+
+  // Trouver le nom de catégorie à partir du slug
+  const getCategoryNameBySlug = (slug) => {
+    const found = products.find(p => slugify(p.category) === slug.toLowerCase())
+    return found ? found.category : ''
+  }
   const filteredProducts = useMemo(() => {
     let result = [...products]
 
@@ -30,8 +47,11 @@ export const useProductFilters = (products, initialFilters = {}) => {
 
     // Filtrage par catégorie
     if (filters.category && filters.category !== 'all') {
-      result = result.filter(product => product.category === filters.category)
+      result = result.filter(product =>
+        slugify(product.category) === filters.category.toLowerCase()
+      )
     }
+
 
     // Filtrage par gamme de prix
     if (filters.priceRange && filters.priceRange.length === 2) {
@@ -52,7 +72,7 @@ export const useProductFilters = (products, initialFilters = {}) => {
 
     // Filtrage par note
     if (filters.rating > 0) {
-      result = result.filter(product => 
+      result = result.filter(product =>
         (product.rating || 0) >= filters.rating
       )
     }
@@ -109,10 +129,10 @@ export const useProductFilters = (products, initialFilters = {}) => {
         result.sort((a, b) => {
           const aHasPromo = a.salePrice && a.salePrice < a.price
           const bHasPromo = b.salePrice && b.salePrice < b.price
-          
+
           if (aHasPromo && !bHasPromo) return -1
           if (!aHasPromo && bHasPromo) return 1
-          
+
           return (b.sales || 0) - (a.sales || 0)
         })
     }
@@ -142,17 +162,17 @@ export const useProductFilters = (products, initialFilters = {}) => {
   const getFilterStats = () => {
     const totalProducts = products.length
     const filteredCount = filteredProducts.length
-    const categories = [...new Set(products.map(p => p.category))]
     const brands = [...new Set(products.map(p => p.name.split(' ')[0]))]
+    const prices = products.map(p => p.salePrice || p.price)
     const priceRange = {
-      min: Math.min(...products.map(p => p.salePrice || p.price)),
-      max: Math.max(...products.map(p => p.salePrice || p.price))
+      min: prices.length ? Math.min(...prices) : 0,
+      max: prices.length ? Math.max(...prices) : 0,
     }
 
     return {
       totalProducts,
       filteredCount,
-      categories: categories.length,
+      categories: categoriesSlug.length,
       brands: brands.length,
       priceRange
     }
@@ -163,7 +183,9 @@ export const useProductFilters = (products, initialFilters = {}) => {
     filteredProducts,
     updateFilters,
     resetFilters,
-    getFilterStats
+    getFilterStats,
+    getCategoryNameBySlug,  // utile pour afficher nom catégorie depuis slug
+
   }
 }
 

@@ -6,6 +6,8 @@ use App\Http\Controllers\ProductController;
 use App\Models\User;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CategoryController;
+
 
 
 
@@ -27,6 +29,11 @@ Route::get('/clients', [ClientController::class, 'index']);
 Route::post('/clients', [ClientController::class, 'store']);
 Route::put('/clients/{id}', [ClientController::class, 'update']);
 Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
+
+// Route publique pour lister les categories
+Route::get('/categories', [CategoryController::class, 'index']);
+
+
 
 // Route publique pour lister les produits
 Route::get('/products', [ProductController::class, 'index']);

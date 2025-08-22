@@ -1,80 +1,83 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRightIcon } from '../components/icons'
+import axios from '../axios'
+import useProductFilters from '../hooks/useProductFilters'  // importe ton hook
+
+
+
+const slugify = (text) =>
+  text.toString().toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .trim()
 
 const Categories = () => {
-  const categories = [
-    {
-      id: 'smartphones',
-      name: 'Smartphones',
-      description: 'Les derniers modèles de téléphones intelligents',
-      image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500',
-      productCount: 25,
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      id: 'laptops',
-      name: 'Ordinateurs portables',
-      description: 'Performants et polyvalents pour tous vos besoins',
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500',
-      productCount: 18,
-      color: 'from-purple-500 to-purple-600'
-    },
-    {
-      id: 'tablets',
-      name: 'Tablettes',
-      description: 'Parfaites pour le travail et le divertissement',
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500',
-      productCount: 12,
-      color: 'from-green-500 to-green-600'
-    },
-    {
-      id: 'audio',
-      name: 'Audio',
-      description: 'Casques, écouteurs et systèmes audio premium',
-      image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=500',
-      productCount: 32,
-      color: 'from-orange-500 to-orange-600'
-    },
-    {
-      id: 'watches',
-      name: 'Montres connectées',
-      description: 'Suivez votre forme et restez connecté',
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
-      productCount: 15,
-      color: 'from-red-500 to-red-600'
-    },
-    {
-      id: 'accessories',
-      name: 'Accessoires',
-      description: 'Coques, chargeurs et autres accessoires',
-      image: 'https://images.unsplash.com/photo-1609205807107-e3b433c49e11?w=500',
-      productCount: 45,
-      color: 'from-indigo-500 to-indigo-600'
-    },
-    {
-      id: 'electronics',
-      name: 'Électronique & Réseaux',
-      description: 'Équipements réseau, serveurs et systèmes de sécurité',
-      image: 'https://images.unsplash.com/photo-1558618047-3c0c8c5c8d3e?w=500',
-      productCount: 28,
-      color: 'from-teal-500 to-teal-600'
-    }
-  ]
+  const [categories, setCategories] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Faire les 2 requêtes en parallèle (produits + catégories)
+    Promise.all([
+      axios.get('/categories'),
+      axios.get('/products')
+    ])
+      .then(([categoriesRes, productsRes]) => {
+        setCategories(categoriesRes.data)
+        setProducts(productsRes.data)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+  // Utilise ton hook avec tous les produits chargés
+  const { filteredProducts } = useProductFilters(products)
+
+  // Compte le nombre de produits par catégorie à partir des produits filtrés
+  const counts = React.useMemo(() => {
+    return filteredProducts.reduce((acc, product) => {
+      const cat = product.categorySlug || slugify(product.category)
+      if (cat) {
+        acc[cat] = (acc[cat] || 0) + 1
+      }
+      return acc
+    }, {})
+  }, [filteredProducts])
+  // Ajoute le count à chaque catégorie
+  const categoriesWithCount = categories.map(cat => ({
+    ...cat,
+    productCount: counts[cat.slug] || 0
+  }))
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Chargement des catégories...
+      </div>
+    )
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Aucune catégorie disponible.
+      </div>
+    )
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-blue-800 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-4">
-              Nos Catégories
-            </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Explorez notre large gamme de produits technologiques organisés par catégories
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+            Nos Catégories
+          </h1>
+          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+            Explorez notre large gamme de produits technologiques organisés par catégories
+          </p>
         </div>
       </section>
 
@@ -82,22 +85,31 @@ const Categories = () => {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map(category => (
+            {categoriesWithCount.map(category => (
               <Link
                 key={category.id}
-                to={`/products?category=${category.id}`}
+                to={`/products?category=${category.slug}`}
                 className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2"
               >
                 {/* Category Image */}
                 <div className="relative h-64 overflow-hidden">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
+                  {category.image ? (
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500">
+                      Pas d'image
+                    </div>
+                  )}
+
                   {/* Gradient Overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-t ${category.color} opacity-60 group-hover:opacity-40 transition-opacity duration-300`}></div>
-                  
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-t ${category.color || 'from-black to-transparent'} opacity-60 group-hover:opacity-40 transition-opacity duration-300`}
+                  ></div>
+
                   {/* Category Badge */}
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                     <span className="text-sm font-semibold text-gray-800">
@@ -139,40 +151,41 @@ const Categories = () => {
       </section>
 
       {/* Popular Categories */}
-      <section className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Catégories populaires
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Les catégories les plus recherchées par nos clients
-            </p>
-          </div>
+<section className="bg-white py-16">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center mb-12">
+      <h2 className="text-3xl font-bold text-gray-900 mb-4">
+        Catégories populaires
+      </h2>
+      <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        Les catégories les plus recherchées par nos clients
+      </p>
+    </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.slice(0, 4).map(category => (
-              <Link
-                key={`popular-${category.id}`}
-                to={`/products?category=${category.id}`}
-                className="group text-center p-6 rounded-xl bg-gray-50 hover:bg-gradient-to-br hover:from-soni-navy/5 hover:to-blue-600/5 transition-all duration-300"
-              >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <span className="text-white font-bold text-xl">
-                    {category.name.charAt(0)}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-soni-navy transition-colors">
-                  {category.name}
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {category.productCount} produits
-                </p>
-              </Link>
-            ))}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {categoriesWithCount.slice(0, 4).map(category => (
+        <Link
+          key={`popular-${category.id}`}
+          to={`/products?category=${category.slug}`}
+          className="group text-center p-6 rounded-xl bg-gray-50 hover:bg-gradient-to-br hover:from-soni-navy/5 hover:to-blue-600/5 transition-all duration-300"
+        >
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <span className="text-white font-bold text-xl">
+              {category.name.charAt(0)}
+            </span>
           </div>
-        </div>
-      </section>
+          <h3 className="font-semibold text-gray-900 group-hover:text-soni-navy transition-colors">
+            {category.name}
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {category.productCount} produits
+          </p>
+        </Link>
+      ))}
+    </div>
+  </div>
+</section>
+
 
       {/* CTA Section */}
       <section className="bg-orange-600 py-16">
