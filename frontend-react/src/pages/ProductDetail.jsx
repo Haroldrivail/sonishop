@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useNotification } from '../context/NotificationContext'
-import { 
+import axios from '../axios'
+import { transformProduct } from '../components/sections/ProductSection'
+import {
   ChevronLeftIcon,
-  HeartIcon, 
-  ShoppingCartIcon, 
+  HeartIcon,
+  ShoppingCartIcon,
   TruckIcon,
   ShieldCheckIcon,
   ArrowsRightLeftIcon,
@@ -26,70 +28,48 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
 
-  // Données simulées d'un produit
-  const mockProduct = {
-    id: 1,
-    name: 'iPhone 15 Pro Max',
-    category: 'Smartphones',
-    price: 850000,
-    originalPrice: 915000,
-    discount: 7,
-    images: [
-      'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600',
-      'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600',
-      'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=600',
-      'https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=600'
-    ],
-    rating: 4.8,
-    reviews: 324,
-    inStock: true,
-    stockCount: 12,
-    isNew: true,
-    badge: 'Bestseller',
-    description: "L'iPhone 15 Pro Max redéfinit l'innovation mobile avec son design en titane, son écran Super Retina XDR de 6,7 pouces et sa puce A17 Pro révolutionnaire. Capturez des moments extraordinaires avec son système de caméra pro avancé et profitez d'une autonomie exceptionnelle.",
-    features: [
-      'Écran Super Retina XDR 6,7 pouces',
-      'Puce A17 Pro avec GPU 6 cœurs',
-      'Système de caméra Pro 48 MP',
-      'Design en titane de qualité aérospatiale',
-      'USB-C avec USB 3',
-      'Face ID',
-      'Résistance à l\'eau IP68',
-      'MagSafe et charge sans fil Qi'
-    ],
-    specifications: {
-      'Écran': 'Super Retina XDR OLED 6,7" (2796 × 1290)',
-      'Processeur': 'Puce A17 Pro',
-      'Stockage': '256 GB',
-      'Caméra': '48 MP principale + 12 MP ultra grand-angle + 12 MP téléobjectif',
-      'Batterie': 'Jusqu\'à 29h de lecture vidéo',
-      'Connectivité': '5G, Wi-Fi 6E, Bluetooth 5.3',
-      'Dimensions': '159,9 × 76,7 × 8,25 mm',
-      'Poids': '221 g'
-    },
-    relatedProducts: [
-      {
-        id: 2,
-        name: 'AirPods Pro 2',
-        price: 163000,
-        image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=300'
-      },
-      {
-        id: 3,
-        name: 'MagSafe Charger',
-        price: 25500,
-        image: 'https://images.unsplash.com/photo-1609205807107-e3b433c49e11?w=300'
-      }
-    ]
-  }
+  const IMAGE_BASE_URL = 'http://public.test/storage/';
+
+  const relatedProducts = product?.relatedProducts ?? [];
 
   useEffect(() => {
-    // Simulation du chargement
-    setTimeout(() => {
-      setProduct(mockProduct)
-      setLoading(false)
-    }, 1000)
-  }, [id])
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+
+        const response = await axios.get(`/products/${id}`);
+        const productData = response.data;
+        const transformedProduct = transformProduct(productData);
+
+        const relatedResponse = await axios.get('/products', {
+          params: { category: productData.category }
+        });
+
+        let relatedProducts = relatedResponse.data || [];
+
+        relatedProducts = relatedProducts.map(transformProduct);
+        relatedProducts = relatedProducts.filter(p => p.id !== productData.id);
+
+        const finalProduct = {
+          ...transformedProduct,
+          relatedProducts: relatedProducts.slice(0, 3)
+        };
+
+        setProduct(finalProduct);
+
+        console.log('Produit chargé:', finalProduct); // <-- Pour debug
+
+      } catch (error) {
+        console.error("Erreur lors du chargement du produit:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -99,6 +79,12 @@ const ProductDetail = () => {
       maximumFractionDigits: 0
     }).format(price)
   }
+  const getDisplayPrice = (product) => {
+    return product.salePrice !== null && product.salePrice !== undefined
+      ? product.salePrice
+      : product.price;
+  }
+
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -122,20 +108,20 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     if (!product.inStock || isAddingToCart) return
-    
+
     setIsAddingToCart(true)
-    
+
     try {
       // Simulation d'un délai pour montrer l'état de chargement
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       // Ajouter le produit au panier avec la quantité sélectionnée
       const success = addToCart(product, quantity)
-      
+
       if (success) {
         // Afficher la notification de succès avec le produit
         showCartNotification(product, quantity)
-        
+
         // Optionnel: Réinitialiser la quantité à 1 après ajout
         // setQuantity(1)
       }
@@ -228,33 +214,42 @@ const ProductDetail = () => {
           {/* Images Section */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="aspect-square bg-white rounded-2xl overflow-hidden shadow-lg">
-              <img
-                src={product.images[selectedImageIndex]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+            <div>
+              {/* Image principale */}
+              <div className="aspect-square bg-white rounded-2xl overflow-hidden shadow-lg">
+                {product.images && product.images.length > 0 ? (
+                  <img
+                    src={`${IMAGE_BASE_URL}${product.images[selectedImageIndex]}`}
+                    alt={`${product.name} ${selectedImageIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    Image indisponible
+                  </div>
+                )}
+              </div>
+
+
+              {/* Si tu voulais un carousel / plusieurs images, il faut que product.images soit un tableau */}
             </div>
 
             {/* Thumbnail Images */}
             <div className="grid grid-cols-4 gap-2">
-              {product.images.map((image, index) => (
+              {(product.images ?? []).map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                    index === selectedImageIndex
-                      ? 'border-soni-orange shadow-md'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${index === selectedImageIndex ? 'border-soni-orange shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
                 >
                   <img
-                    src={image}
+                    src={`${IMAGE_BASE_URL}${image}`}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </button>
               ))}
+
             </div>
           </div>
 
@@ -292,19 +287,24 @@ const ProductDetail = () => {
             {/* Price */}
             <div className="flex items-center gap-3">
               <span className="price-fcfa-large text-soni-navy">
-                {formatPrice(product.price)}
+                {formatPrice(getDisplayPrice(product))}
               </span>
-              {product.originalPrice && (
+
+              {product.salePrice && product.salePrice !== product.price && (
                 <>
                   <span className="text-lg text-gray-400 line-through price-fcfa">
-                    {formatPrice(product.originalPrice)}
+                    {formatPrice(product.price)}
                   </span>
-                  <span className="px-2 py-1 bg-red-100 text-red-600 text-sm font-semibold rounded">
-                    -{product.discount}%
-                  </span>
+                  {/* Optionnel : afficher un badge de remise si tu as le % de réduction */}
+                  {product.discount && (
+                    <span className="px-2 py-1 bg-red-100 text-red-600 text-sm font-semibold rounded">
+                      -{product.discount}%
+                    </span>
+                  )}
                 </>
               )}
             </div>
+
 
             {/* Stock Status */}
             <div className="flex items-center gap-2">
@@ -412,11 +412,10 @@ const ProductDetail = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-soni-orange text-soni-orange'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                    ? 'border-soni-orange text-soni-orange'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -433,24 +432,32 @@ const ProductDetail = () => {
 
             {activeTab === 'features' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {product.features.map((feature, index) => (
+                {Array.isArray(product.features) && product.features.map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <CheckIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span className="text-gray-700">{feature}</span>
                   </div>
                 ))}
+
               </div>
             )}
 
             {activeTab === 'specs' && (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="divide-y divide-gray-200">
-                  {Object.entries(product.specifications).map(([key, value]) => (
-                    <div key={key} className="px-6 py-4 flex justify-between">
-                      <dt className="font-medium text-gray-900">{key}</dt>
-                      <dd className="text-gray-700 text-right">{value}</dd>
+                  {product.specifications && typeof product.specifications === 'object' ? (
+                    Object.entries(product.specifications).map(([key, value]) => (
+                      <div key={key} className="px-6 py-4 flex justify-between">
+                        <dt className="font-medium text-gray-900">{key}</dt>
+                        <dd className="text-gray-700 text-right">{value}</dd>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-6 py-4 text-gray-500 italic">
+                      Aucune spécification disponible.
                     </div>
-                  ))}
+                  )}
+
                 </div>
               </div>
             )}
@@ -468,7 +475,7 @@ const ProductDetail = () => {
           <div className="mt-16">
             <h2 className="text-xl font-bold text-gray-900 mb-8">Produits complémentaires</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {product.relatedProducts.map(relatedProduct => (
+              {(relatedProducts ?? []).map((relatedProduct) => (
                 <Link
                   key={relatedProduct.id}
                   to={`/products/${relatedProduct.id}`}
@@ -476,10 +483,11 @@ const ProductDetail = () => {
                 >
                   <div className="aspect-square overflow-hidden bg-gray-100">
                     <img
-                      src={relatedProduct.image}
+                      src={`${IMAGE_BASE_URL}${relatedProduct.image}`}
                       alt={relatedProduct.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+
                   </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-soni-navy transition-colors">

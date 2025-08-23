@@ -17,14 +17,16 @@ export const transformProduct = (product) => ({
   price: parseFloat(product.price),
   salePrice: product.sale_price ? parseFloat(product.sale_price) : null,
   image: product.image,
+  images: [product.image], // 👈 transforme image unique en tableau
   category: typeof product.category === 'string'
     ? product.category
     : product.category?.name || 'Non défini',
-    categorySlug: product.category?.slug || null, // 👈 Ajout du slug
+  categorySlug: product.category?.slug || null, // 👈 Ajout du slug
   rating: parseFloat(product.rating),
   reviews: product.reviews || 0,
   inStock: product.in_stock === 1,
   stock: product.stock,
+  stockCount: product.stock,
   isNew: product.is_new === 1,
   freeShipping: product.free_shipping === 1,
   sales: product.sales,
