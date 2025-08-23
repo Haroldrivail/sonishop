@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
+import axios from 'axios'
 import {
     ChartBarIcon,
     TrendingUpIcon,
@@ -12,44 +13,51 @@ const Analytics = () => {
     const [timeRange, setTimeRange] = useState('30d')
     const [chartType, setChartType] = useState('revenue')
 
-    // Données simulées pour les graphiques
-    const salesData = {
-        '7d': [
-            { date: '2025-08-06', revenue: 450000, orders: 12, customers: 8 },
-            { date: '2025-08-07', revenue: 620000, orders: 18, customers: 15 },
-            { date: '2025-08-08', revenue: 380000, orders: 9, customers: 7 },
-            { date: '2025-08-09', revenue: 750000, orders: 22, customers: 19 },
-            { date: '2025-08-10', revenue: 520000, orders: 15, customers: 12 },
-            { date: '2025-08-11', revenue: 890000, orders: 28, customers: 24 },
-            { date: '2025-08-12', revenue: 1150000, orders: 35, customers: 31 }
-        ],
-        '30d': Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(2025, 7, i + 1).toISOString().split('T')[0],
-            revenue: Math.floor(Math.random() * 800000) + 200000,
-            orders: Math.floor(Math.random() * 40) + 5,
-            customers: Math.floor(Math.random() * 35) + 3
-        }))
+    const [analyticsData, setAnalyticsData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    const currentData = analyticsData?.sales_evolution || []
+    const totalRevenue = analyticsData?.total_revenue || 0
+    const totalOrders = analyticsData?.total_orders || 0
+    const avgOrderValue = analyticsData?.avg_order_value || 0
+    const topCustomers = analyticsData?.top_clients || []
+
+    const getColorByCategory = (name) => {
+        const colorMap = {
+            Smartphones: '#1a237e',
+            Ordinateurs: '#ff6d00',
+            Accessoires: '#4caf50',
+            Audio: '#f44336'
+        }
+        return colorMap[name] || '#9e9e9e'
     }
 
-    const categoryData = [
-        { name: 'Smartphones', value: 45, color: '#1a237e' },
-        { name: 'Ordinateurs', value: 25, color: '#ff6d00' },
-        { name: 'Accessoires', value: 20, color: '#4caf50' },
-        { name: 'Audio', value: 10, color: '#f44336' }
-    ]
+    const categoryData = useMemo(() => (
+        (analyticsData?.category_sales || []).map(cat => ({
+            name: cat.name,
+            value: cat.sales,
+            color: getColorByCategory(cat.name)
+        }))
+    ), [analyticsData])
 
-    const topCustomers = [
-        { name: 'Jean Dupont', orders: 15, total: 2850000, growth: 12.5 },
-        { name: 'Marie Claire', orders: 12, total: 1980000, growth: -5.2 },
-        { name: 'Paul Martin', orders: 10, total: 1650000, growth: 8.7 },
-        { name: 'Sophie Ngono', orders: 8, total: 1420000, growth: 15.3 },
-        { name: 'Pierre Kamga', orders: 7, total: 1180000, growth: -2.1 }
-    ]
-
-    const currentData = salesData[timeRange]
-    const totalRevenue = currentData.reduce((sum, day) => sum + day.revenue, 0)
-    const totalOrders = currentData.reduce((sum, day) => sum + day.orders, 0)
-    const avgOrderValue = totalRevenue / totalOrders
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+                const response = await axios.get(`/api/analytics?range=${timeRange}`)
+                 console.log("Données API :", response.data)
+                setAnalyticsData(response.data)
+            } catch (error) {
+                setError('Impossible de charger les données. Veuillez réessayer.')
+                console.error("Erreur lors du chargement des données analytiques :", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchAnalytics()
+    }, [timeRange])
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -65,11 +73,12 @@ const Analytics = () => {
     }
 
     const getMaxValue = (data, key) => {
+        if (!data.length) return 0
         return Math.max(...data.map(item => item[key]))
     }
 
     const SimpleBarChart = ({ data, dataKey, color = '#1a237e' }) => {
-        const maxValue = getMaxValue(data, dataKey)
+        const maxValue = getMaxValue(data, dataKey) || 1
 
         return (
             <div className="flex items-end space-x-1 h-40">
@@ -83,7 +92,7 @@ const Analytics = () => {
                                 minHeight: '4px'
                             }}
                         />
-                        <div className="text-xs text-gray-500 mt-1 transform rotate-45 origin-bottom-left">
+                        <div className="text-xs text-gray-500 mt-1 transform rotate-45 origin-bottom-left select-none">
                             {new Date(item.date).getDate()}
                         </div>
                     </div>
@@ -131,12 +140,22 @@ const Analytics = () => {
                                 style={{ backgroundColor: item.color }}
                             />
                             <span className="text-sm text-gray-700">{item.name}</span>
-                            <span className="ml-auto text-sm font-medium">{item.value}%</span>
+                            <span className="ml-auto text-sm font-medium">
+                                {((item.value / total) * 100).toFixed(1)}%
+                            </span>
                         </div>
                     ))}
                 </div>
             </div>
         )
+    }
+
+    if (loading) {
+        return <div className="p-6 text-gray-600">Chargement des données en cours...</div>
+    }
+
+    if (error) {
+        return <div className="p-6 text-red-600 font-semibold">{error}</div>
     }
 
     return (
@@ -248,13 +267,12 @@ const Analytics = () => {
                         >
                             <option value="revenue">Chiffre d'affaires</option>
                             <option value="orders">Commandes</option>
-                            <option value="customers">Nouveaux clients</option>
                         </select>
                     </div>
                     <SimpleBarChart
                         data={currentData}
                         dataKey={chartType}
-                        color={chartType === 'revenue' ? '#1a237e' : chartType === 'orders' ? '#ff6d00' : '#4caf50'}
+                        color={chartType === 'revenue' ? '#1a237e' : '#ff6d00'}
                     />
                 </div>
 
@@ -265,17 +283,17 @@ const Analytics = () => {
                 </div>
             </div>
 
-            {/* Top Customers & Recent Activity */}
+            {/* Top Customers & Performance Metrics */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Customers */}
                 <div className="bg-white p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900">Top Clients</h3>                        
-                        <button className="group flex justify-center items-center p-2 border border-transparent text-base font-bold rounded-xl text-white bg-blue-400  hover:bg-blue-500 focus:outline-none focus:ring-4 focus:ring-soni-navy/30  transition-all duration-200 shadow-lg hover:shadow-xl  hover:cursor-pointer">
+                        <h3 className="text-lg font-semibold text-gray-900">Top Clients</h3>
+                        <button className="group flex justify-center items-center p-2 border border-transparent text-base font-bold rounded-xl text-white bg-blue-400 hover:bg-blue-500 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 transition-all duration-200 shadow-lg hover:shadow-xl hover:cursor-pointer">
                             Voir tout
                         </button>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
                         {topCustomers.map((customer, index) => (
                             <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                 <div className="flex items-center">
@@ -309,6 +327,26 @@ const Analytics = () => {
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div className="bg-green-500 h-2 rounded-full" style={{ width: '94%' }}></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Taux de fidélisation</span>
+                                <span className="text-sm font-medium">76%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '76%' }}></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Temps de livraison moyen</span>
+                                <span className="text-sm font-medium">2.3 jours</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="bg-orange-500 h-2 rounded-full" style={{ width: '85%' }}></div>
                             </div>
                         </div>
 

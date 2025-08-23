@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\AnalyticsController;
 
 
 
@@ -24,6 +25,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/orders', [OrderController::class, 'index']);
 Route::put('/orders/{id}/cancel', [OrderController::class, 'cancel']);
 Route::post('/orders', [OrderController::class, 'store']);
+
+// Route publique pour analyser le traffic
+Route::get('/analytics', [AnalyticsController::class, 'getAnalytics']);
+
 
 
 // Route publique pour lister les clients
