@@ -9,7 +9,11 @@ const improvementsData = {
     },
     analytics: {
         title: 'Améliorations - Analytiques',
-        tasks: []
+        tasks: [
+            's assurer que TOP CLIENTS precise si c est un utilisateur connecte ou pas qui a commande',
+            'evolution du ciffre d affaire  c est pas encore ca',
+            'et tous les boutons qu on cliques doit rediriGer vers quelque part'
+        ]
     },
     orders: {
         title: 'Améliorations - Gestion des Commandes',
