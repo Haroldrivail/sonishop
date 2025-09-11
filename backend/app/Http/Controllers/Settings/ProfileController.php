@@ -2,26 +2,40 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Http\Controllers\Concerns\RedirectsToFrontend;
 
 class ProfileController extends Controller
 {
+    use RedirectsToFrontend;
     /**
      * Show the user's profile settings page.
      */
-    public function edit(Request $request): Response
+    public function edit(Request $request): Response|RedirectResponse|JsonResponse
     {
-        return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => $request->session()->get('status'),
-        ]);
+        $mustVerifyEmail = $request->user() instanceof MustVerifyEmail;
+    $status = $request->hasSession() ? $request->session()->get('status') : null;
+
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'mustVerifyEmail' => $mustVerifyEmail,
+                'status' => $status,
+            ]);
+        }
+
+        $frontend = $this->frontendUrl();
+        if ($frontend) {
+            return redirect()->away(rtrim($frontend, '/') . '/settings/profile');
+        }
+
+        return response()->json(['mustVerifyEmail' => $mustVerifyEmail, 'status' => $status]);
     }
 
     /**
@@ -51,13 +65,16 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+    // ensure we call logout on the web guard
+    Auth::guard('web')->logout();
 
         $user->delete();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
-        return redirect('/');
+    return redirect(route('home'));
     }
 }

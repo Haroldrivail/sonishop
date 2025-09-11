@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext'
 import { NotificationProvider } from './context/NotificationContext'
 import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import UnverifiedOnlyRoute from './components/auth/UnverifiedOnlyRoute'
 import NotificationContainer from './components/notifications/NotificationContainer'
 
 // Pages d'authentification
@@ -22,7 +23,6 @@ import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
-import CheckoutNew from './pages/CheckoutNew'
 import OrderTracking from './pages/OrderTracking'
 import Categories from './pages/Categories'
 import Favorites from './pages/Favorites'
@@ -44,7 +44,11 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/verify-email" element={<VerifyEmail />} />
+                    <Route path="/verify-email" element={
+                        <UnverifiedOnlyRoute>
+                            <VerifyEmail />
+                        </UnverifiedOnlyRoute>
+                    } />
 
                     {/* Pages avec layout */}
                     <Route path="/" element={
@@ -79,7 +83,7 @@ function App() {
 
                     <Route path="/checkout" element={
                         <Layout>
-                            <CheckoutNew />
+                            <Checkout />
                         </Layout>
                     } />
 
@@ -120,7 +124,7 @@ function App() {
                     } />
 
                     {/* Dashboard Admin */}
-                    <Route path="/admin/Dashboard" element={
+                    <Route path="/dashboard" element={
                         <ProtectedRoute>
                             <AdminDashboard />
                         </ProtectedRoute>

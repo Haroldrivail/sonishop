@@ -4,9 +4,9 @@ namespace App\Http\Middleware;
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
-use Inertia\Middleware;
+use Closure;
 
-class HandleInertiaRequests extends Middleware
+class HandleInertiaRequests
 {
     /**
      * The root template that's loaded on the first page visit.
@@ -24,9 +24,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function version(Request $request): ?string
     {
-        return parent::version($request);
+        // No-op for API-only backend; frontend assets are served by the SPA.
+        return null;
     }
-
     /**
      * Define the props that are shared by default.
      *
@@ -36,16 +36,25 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // Provide minimal shared data for compatibility; API clients should
+        // fetch authenticated user via the /api/auth/me endpoint instead.
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
         return [
-            ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * Allow this middleware to be used in the HTTP kernel pipeline.
+     * For the API-only backend we simply pass the request through.
+     */
+    public function handle(Request $request, Closure $next)
+    {
+        return $next($request);
     }
 }

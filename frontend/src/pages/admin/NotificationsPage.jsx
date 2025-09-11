@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import EmptyState from '../../components/admin/EmptyState'
 import {
     BellIcon,
     XMarkIcon,
@@ -16,98 +17,68 @@ import {
     CurrencyDollarIcon,
     CogIcon
 } from '../../components/icons'
+import { api } from '../../api/client'
+
+// Helpers to map backend notification data (Laravel database notifications)
+const mapNotification = (n) => {
+    // Backend returns fields: id, type (class path), notifiable_type, notifiable_id, data (array), read_at, created_at
+    // We'll attempt to derive a simplified type & presentation fields from data payload
+    const payload = n.data || {}
+    const derivedType = payload.domain || payload.type || 'system'
+    const title = payload.title || payload.subject || 'Notification'
+    const message = payload.message || payload.body || payload.content || ''
+    const priority = payload.priority || 'low'
+    // Choose icon & color based on derivedType / priority heuristics
+    const iconMap = {
+        order: 'ShoppingBagIcon',
+        stock: 'ExclamationTriangleIcon',
+        customer: 'UserIcon',
+        payment: 'CurrencyDollarIcon',
+        system: 'InformationCircleIcon'
+    }
+    const mappedIconName = iconMap[derivedType] || 'InformationCircleIcon'
+    return {
+        id: n.id,
+        type: derivedType,
+        title,
+        message,
+        priority: ['high','medium','low'].includes(priority) ? priority : 'low',
+        read: !!n.read_at,
+        time: n.created_at,
+        iconName: mappedIconName,
+        color: priority === 'high' ? 'red' : priority === 'medium' ? 'yellow' : 'blue',
+        _raw: n
+    }
+}
+
+// Map of icon components by name so we can select dynamically
+const ICON_COMPONENTS = {
+    BellIcon,
+    XMarkIcon,
+    CheckIcon,
+    ExclamationTriangleIcon,
+    InformationCircleIcon,
+    CheckCircleIcon,
+    ClockIcon,
+    EyeIcon,
+    TrashIcon,
+    FunnelIcon,
+    MagnifyingGlassIcon,
+    UserIcon,
+    ShoppingBagIcon,
+    CurrencyDollarIcon,
+    CogIcon
+}
 
 const NotificationsPage = () => {
-    const [notifications, setNotifications] = useState([
-        {
-            id: 1,
-            type: 'order',
-            title: 'Nouvelle commande reçue',
-            message: 'Commande #SN001245 de Marie Claire pour 163,000 FCFA',
-            time: '2025-08-12T10:30:00',
-            read: false,
-            priority: 'high',
-            icon: ShoppingBagIcon,
-            color: 'blue'
-        },
-        {
-            id: 2,
-            type: 'stock',
-            title: 'Stock faible - AirPods Pro 2',
-            message: 'Il ne reste que 2 unités en stock. Réapprovisionnement nécessaire.',
-            time: '2025-08-12T09:15:00',
-            read: false,
-            priority: 'medium',
-            icon: ExclamationTriangleIcon,
-            color: 'yellow'
-        },
-        {
-            id: 3,
-            type: 'customer',
-            title: 'Nouveau client inscrit',
-            message: 'Pierre Kamga vient de créer un compte SoniShop',
-            time: '2025-08-12T08:45:00',
-            read: true,
-            priority: 'low',
-            icon: UserIcon,
-            color: 'green'
-        },
-        {
-            id: 4,
-            type: 'payment',
-            title: 'Paiement confirmé',
-            message: 'Paiement de 850,000 FCFA reçu pour la commande #SN001244',
-            time: '2025-08-12T08:20:00',
-            read: true,
-            priority: 'high',
-            icon: CurrencyDollarIcon,
-            color: 'green'
-        },
-        {
-            id: 5,
-            type: 'system',
-            title: 'Mise à jour du système',
-            message: 'Mise à jour de sécurité installée avec succès - Version 1.2.3',
-            time: '2025-08-11T22:00:00',
-            read: true,
-            priority: 'low',
-            icon: CogIcon,
-            color: 'purple'
-        },
-        {
-            id: 6,
-            type: 'order',
-            title: 'Commande annulée',
-            message: 'La commande #SN001243 a été annulée par le client',
-            time: '2025-08-11T16:30:00',
-            read: false,
-            priority: 'medium',
-            icon: XMarkIcon,
-            color: 'red'
-        },
-        {
-            id: 7,
-            type: 'stock',
-            title: 'Produit en rupture',
-            message: 'Samsung Galaxy S24 Ultra - Stock épuisé',
-            time: '2025-08-11T14:15:00',
-            read: true,
-            priority: 'high',
-            icon: ExclamationTriangleIcon,
-            color: 'red'
-        },
-        {
-            id: 8,
-            type: 'customer',
-            title: 'Avis client 5 étoiles',
-            message: 'Excellent avis de Sophie Mballa sur iPhone 15 Pro Max',
-            time: '2025-08-11T12:00:00',
-            read: true,
-            priority: 'low',
-            icon: CheckCircleIcon,
-            color: 'green'
-        }
-    ])
+    // State
+    const [notifications, setNotifications] = useState([])
+    const [page, setPage] = useState(1)
+    const [perPage] = useState(20) // Fixed by backend paginate(20)
+    const [total, setTotal] = useState(0)
+    const [lastPage, setLastPage] = useState(1)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
 
     const [filterType, setFilterType] = useState('all')
     const [filterRead, setFilterRead] = useState('all')
@@ -182,29 +153,61 @@ const NotificationsPage = () => {
 
     const unreadCount = notifications.filter(n => !n.read).length
 
-    const markAsRead = (id) => {
-        setNotifications(prev => 
-            prev.map(notification => 
-                notification.id === id 
-                    ? { ...notification, read: true }
-                    : notification
-            )
-        )
+    // API: fetch notifications
+    const fetchNotifications = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            const { data } = await api.get('/notifications', { params: { page } })
+            // ApiResponse => { status:'ok', data: { current_page, data: [...], last_page, per_page, total, ... } }
+            const payload = data?.data || {}
+            const list = (payload.data || []).map(mapNotification)
+            setNotifications(list)
+            setTotal(payload.total || list.length)
+            setLastPage(payload.last_page || 1)
+        } catch (e) {
+            setError(e)
+        } finally {
+            setLoading(false)
+        }
+    }, [page])
+
+    const markAsRead = async (id) => {
+        // Optimistic update
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+        try { await api.post(`/notifications/${id}/read`) } catch { /* rollback? omitted for brevity */ }
     }
 
-    const markAllAsRead = () => {
-        setNotifications(prev => 
-            prev.map(notification => ({ ...notification, read: true }))
-        )
+    const markAllAsRead = async () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+        try { await api.post('/notifications/read-all') } catch { /* ignore */ }
     }
 
-    const deleteNotification = (id) => {
-        setNotifications(prev => prev.filter(notification => notification.id !== id))
+    const deleteNotification = async (id) => {
+        const prev = notifications
+        setNotifications(p => p.filter(n => n.id !== id))
+        try { await api.delete(`/notifications/${id}`) } catch { setNotifications(prev) }
     }
 
-    const deleteAllRead = () => {
-        setNotifications(prev => prev.filter(notification => !notification.read))
+    const deleteAllRead = async () => {
+        const toDelete = notifications.filter(n => n.read).map(n => n.id)
+        if (!toDelete.length) return
+        const prev = notifications
+        setNotifications(prev.filter(n => !n.read))
+        try {
+            // Batch delete sequentially (could be optimized server-side with bulk endpoint)
+            for (const id of toDelete) {
+                // eslint-disable-next-line no-await-in-loop
+                await api.delete(`/notifications/${id}`)
+            }
+        } catch {
+            setNotifications(prev) // rollback
+        }
     }
+
+    useEffect(() => {
+        fetchNotifications()
+    }, [fetchNotifications])
 
     return (
         <div className="space-y-6">
@@ -342,18 +345,22 @@ const NotificationsPage = () => {
 
             {/* Notifications List */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                {filteredNotifications.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <BellIcon className="h-8 w-8 text-gray-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune notification</h3>
-                        <p className="text-gray-500">Aucune notification ne correspond à vos critères de recherche.</p>
-                    </div>
+                {loading && (
+                    <div className="py-8 text-center text-gray-500 text-sm">Chargement...</div>
+                )}
+                {error && !loading && (
+                    <div className="py-8 text-center text-red-500 text-sm">Erreur de chargement des notifications.</div>
+                )}
+                {!loading && !error && filteredNotifications.length === 0 ? (
+                    <EmptyState 
+                        type="notifications"
+                        title="Aucune notification"
+                        description="Toutes vos notifications importantes apparaîtront ici."
+                    />
                 ) : (
                     <div className="divide-y divide-gray-200">
                         {filteredNotifications.map((notification) => {
-                            const Icon = notification.icon
+                            const Icon = ICON_COMPONENTS[notification.iconName] || InformationCircleIcon
                             return (
                                 <div
                                     key={notification.id}
@@ -421,20 +428,25 @@ const NotificationsPage = () => {
             </div>
 
             {/* Pagination */}
-            {filteredNotifications.length > 0 && (
+            {(!loading && !error && filteredNotifications.length > 0) && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-700">
-                            Affichage de <span className="font-medium">1</span> à <span className="font-medium">{filteredNotifications.length}</span> sur <span className="font-medium">{notifications.length}</span> notifications
+                            Page <span className="font-medium">{page}</span> / {lastPage} — {total} notifications
                         </div>
                         <div className="flex space-x-2">
-                            <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
+                            <button
+                                disabled={page <= 1}
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
                                 Précédent
                             </button>
-                            <button className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors">
-                                1
-                            </button>
-                            <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
+                            <button
+                                disabled={page >= lastPage}
+                                onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
                                 Suivant
                             </button>
                         </div>

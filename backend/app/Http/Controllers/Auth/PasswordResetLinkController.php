@@ -3,22 +3,26 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\RedirectsToFrontend;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\JsonResponse;
 
 class PasswordResetLinkController extends Controller
 {
+    use RedirectsToFrontend;
     /**
      * Show the password reset link request page.
      */
-    public function create(Request $request): Response
+    public function create(Request $request): \Illuminate\Http\RedirectResponse|JsonResponse
     {
-        return Inertia::render('auth/forgot-password', [
-            'status' => $request->session()->get('status'),
-        ]);
+        $frontend = $this->frontendUrl();
+        if ($frontend) {
+            return redirect()->away(rtrim($frontend, '/') . '/forgot-password');
+        }
+
+        return response()->json(['forgot_password' => true]);
     }
 
     /**
@@ -26,15 +30,19 @@ class PasswordResetLinkController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
         ]);
 
-        Password::sendResetLink(
+        $status = Password::sendResetLink(
             $request->only('email')
         );
+
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json(['message' => __($status)]);
+        }
 
         return back()->with('status', __('A reset link will be sent if the account exists.'));
     }

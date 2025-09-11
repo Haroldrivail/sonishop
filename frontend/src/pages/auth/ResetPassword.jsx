@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { api } from '../../api/client'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { EyeIcon, ArrowLeftIcon } from './../../components/icons/CommonIcons'
 import AuthLayout from './../../components/layout/AuthLayout'
@@ -51,32 +52,27 @@ function ResetPassword() {
         setLoading(true)
 
         try {
-            // Simulation d'un appel API - remplacer par la vraie logique
-            const response = await fetch('/api/auth/reset-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    token,
-                    email,
-                    password: formData.password,
-                    password_confirmation: formData.password_confirmation
-                })
+            const response = await api.auth.resetPassword({
+                token,
+                email,
+                password: formData.password,
+                password_confirmation: formData.password_confirmation
             })
-
-            if (!response.ok) {
-                throw new Error('Erreur lors de la réinitialisation du mot de passe')
-            }
-
-            // Rediriger vers la page de connexion avec un message de succès
+            
+            // Si la requête a réussi (pas d'erreur lancée), on considère que c'est un succès
             navigate('/login', {
                 state: {
                     message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.'
                 }
             })
         } catch (error) {
-            setError('Une erreur est survenue. Veuillez réessayer.')
+            console.error('Erreur de réinitialisation:', error);
+            // Récupération du message d'erreur depuis la réponse API
+            if (error.response && error.response.data && error.response.data.message) {
+                setError(error.response.data.message);
+            } else {
+                setError('Une erreur est survenue lors de la réinitialisation du mot de passe.');
+            }
         } finally {
             setLoading(false)
         }
@@ -125,7 +121,11 @@ function ResetPassword() {
                                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                                 onClick={() => setShowPassword(!showPassword)}
                             >
-                                <EyeIcon isVisible={showPassword} className="h-5 w-5" />
+                                {showPassword ? (
+                                    <EyeOffIcon className="h-5 w-5" />
+                                ) : (
+                                    <EyeIcon className="h-5 w-5" />
+                                )}
                             </button>
                         </div>
                         <p className="mt-2 text-sm text-gray-500">
@@ -154,7 +154,11 @@ function ResetPassword() {
                                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             >
-                                <EyeIcon isVisible={showConfirmPassword} className="h-5 w-5" />
+                                {showConfirmPassword ? (
+                                    <EyeOffIcon className="h-5 w-5" />
+                                ) : (
+                                    <EyeIcon className="h-5 w-5" />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -164,7 +168,7 @@ function ResetPassword() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-soni-navy/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                        className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform active:scale-[0.98] hover:cursor-pointer mb-2"
                     >
                         {loading ? (
                             <div className="flex items-center">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { api } from '../api/client'
 import {
     CheckIcon,
     TruckIcon,
@@ -18,7 +19,7 @@ const OrderTracking = () => {
 
     useEffect(() => {
         // Récupérer l'ID de commande depuis l'état de navigation ou l'URL
-        const orderId = location.state?.orderId || new URLSearchParams(location.search).get('orderId')
+    const orderId = location.state?.orderId || new URLSearchParams(location.search).get('orderId')
         
         if (!orderId) {
             navigate('/products')
@@ -26,17 +27,42 @@ const OrderTracking = () => {
         }
 
         // Charger les détails de la commande
-        const loadOrderDetails = () => {
+        const loadOrderDetails = async () => {
             try {
-                const orders = JSON.parse(localStorage.getItem('sonishop_orders') || '[]')
-                const foundOrder = orders.find(o => o.id === orderId)
-                
-                if (foundOrder) {
-                    setOrder(foundOrder)
-                } else {
-                    // Commande non trouvée
-                    navigate('/products')
+                // 1. Depuis l'état de navigation direct
+                if (location.state?.order) {
+                    setOrder(location.state.order)
+                    return
                 }
+                // 2. Depuis sessionStorage
+                const sessionStored = sessionStorage.getItem('sonishop_current_order')
+                if (sessionStored) {
+                    const parsed = JSON.parse(sessionStored)
+                    if (parsed?.id === orderId) {
+                        setOrder(parsed)
+                        return
+                    }
+                }
+                // 3. Depuis localStorage (anciennes commandes client hors API)
+                const localOrders = JSON.parse(localStorage.getItem('sonishop_orders') || '[]')
+                const foundLocal = localOrders.find(o => o.id === orderId)
+                if (foundLocal) {
+                    setOrder(foundLocal)
+                    return
+                }
+                // 4. Tentative API (si connecté)
+                try {
+                    const res = await api.orders.getById(orderId)
+                    const apiOrder = res.data?.data || res.data
+                    if (apiOrder) {
+                        setOrder(apiOrder)
+                        return
+                    }
+                } catch (apiErr) {
+                    console.warn('API order fetch failed', apiErr)
+                }
+                // 5. Pas trouvé
+                navigate('/products')
             } catch (error) {
                 console.error('Erreur lors du chargement de la commande:', error)
                 navigate('/products')
@@ -127,6 +153,17 @@ const OrderTracking = () => {
 
     const deliveryStatus = getDeliveryStatus()
 
+    // Normalisation des informations utilisateur (certaines commandes API/local peuvent ne pas avoir userInfo)
+    const rawUser = order.userInfo || order.user || {}
+    const firstName = rawUser.firstName || rawUser.first_name || (rawUser.name ? rawUser.name.split(' ')[0] : 'Client')
+    const lastName = rawUser.lastName || rawUser.last_name || (rawUser.name ? rawUser.name.split(' ').slice(1).join(' ') : '')
+    const city = rawUser.city || ''
+    const quartier = rawUser.quartier || ''
+    const address = [quartier, city].filter(Boolean).join(', ')
+    const country = rawUser.country || ''
+    const phone = rawUser.phone || rawUser.phone_number || ''
+    const email = rawUser.email || ''
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -187,12 +224,15 @@ const OrderTracking = () => {
                             </h3>
                             <div className="space-y-2 text-sm">
                                 <p className="font-medium text-gray-900">
-                                    {order.userInfo.firstName} {order.userInfo.lastName}
+                                    {firstName} {lastName}
                                 </p>
-                                <p className="text-gray-600">{order.userInfo.address}</p>
-                                <p className="text-gray-600">{order.userInfo.city}, {order.userInfo.country}</p>
-                                <p className="text-gray-600">📞 {order.userInfo.phone}</p>
-                                <p className="text-gray-600">✉️ {order.userInfo.email}</p>
+                                {address && <p className="text-gray-600">{address}</p>}
+                                {(city || country) && <p className="text-gray-600">{city}{city && country ? ', ' : ''}{country}</p>}
+                                {phone && <p className="text-gray-600">📞 {phone}</p>}
+                                {email && <p className="text-gray-600">✉️ {email}</p>}
+                                {!address && !phone && !email && (
+                                  <p className="text-gray-500 italic">Aucune information de livraison détaillée disponible.</p>
+                                )}
                             </div>
                         </div>
 
@@ -236,7 +276,7 @@ const OrderTracking = () => {
                                 
                                 {isAuthenticated && (
                                     <Link
-                                        to="/profile/orders"
+                                        to="/orders"
                                         className="flex items-center justify-center w-full py-3 border border-soni-navy text-soni-navy rounded-lg hover:bg-soni-navy/5 transition-colors"
                                     >
                                         📋 Mes commandes

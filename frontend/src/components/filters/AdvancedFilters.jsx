@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   ChevronDownIcon, 
   XIcon, 
@@ -59,8 +59,13 @@ const AdvancedFilters = ({
     { value: 3, label: '3+ étoiles' }
   ]
 
+  // Synchroniser la catégorie externe sans recréer l'objet si la valeur est inchangée
   useEffect(() => {
-    setFilters(prev => ({ ...prev, category: selectedCategory || 'all' }))
+    const target = selectedCategory || 'all'
+    setFilters(prev => {
+      if (prev.category === target) return prev // pas de nouvel objet -> pas de re-render inutile
+      return { ...prev, category: target }
+    })
   }, [selectedCategory])
 
   useEffect(() => {
@@ -79,9 +84,23 @@ const AdvancedFilters = ({
   }, [filters])
 
   // Effet séparé pour appliquer les filtres
+  // Appliquer les filtres au parent seulement quand ils changent réellement (shallow compare)
+  const lastSentRef = useRef(filters)
   useEffect(() => {
-    onFiltersChange(filters)
-  }, [filters]) // Retirer onFiltersChange des dépendances
+    const prev = lastSentRef.current
+    const changed = Object.keys(filters).some(k => {
+      if (Array.isArray(filters[k]) && Array.isArray(prev[k])) {
+        if (filters[k].length !== prev[k].length) return true
+        for (let i = 0; i < filters[k].length; i++) if (filters[k][i] !== prev[k][i]) return true
+        return false
+      }
+      return filters[k] !== prev[k]
+    })
+    if (changed) {
+      lastSentRef.current = filters
+      onFiltersChange(filters)
+    }
+  }, [filters, onFiltersChange])
 
   const handleCategoryChange = (category) => {
     setFilters(prev => ({ ...prev, category }))

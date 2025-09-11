@@ -115,20 +115,14 @@ function AuthLayout({ children, title, subtitle }) {
                         {/* Logo mobile */}
                         <div className="lg:hidden text-center mb-8">
                             <Link to="/" className="inline-flex items-center">
-                                <div className="w-10 h-10 bg-gradient-to-br from-soni-navy to-blue-800 rounded-xl flex items-center justify-center mr-3">
-                                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                    </svg>
-                                </div>
                                 <div className="text-xl font-bold">
-                                    <span className="text-soni-navy">SONI</span>
-                                    <span className="text-gray-800">SHOP</span>
+                                    <span className="text-blue-500">SONISHOP</span>
                                 </div>
                             </Link>
                         </div>
 
                         {/* En-tête */}
-                        <div className="mb-8">
+                        <div className="mb-8 text-center">
                             <h2 className="text-3xl font-bold text-gray-900 mb-2">
                                 {title}
                             </h2>
@@ -146,7 +140,7 @@ function AuthLayout({ children, title, subtitle }) {
 
                         {/* Footer */}
                         <div className="mt-8 pt-6 border-t border-gray-200">
-                            <p className="text-center text-sm text-gray-200">
+                            <p className="text-center text-sm text-gray-500">
                                 © 2025 SoniShop by Sonitelecom. Tous droits réservés.
                             </p>
                         </div>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { apiClient } from '../../api/client'
 import { EyeIcon, EyeOffIcon, ArrowRightIcon } from '../../components/icons/CommonIcons'
 import AuthLayout from '../../components/layout/AuthLayout'
 
@@ -10,8 +11,22 @@ function Login() {
         password: ''
     })
     const [showPassword, setShowPassword] = useState(false)
-    const { login, loading, error, clearError } = useAuth()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [successMessage, setSuccessMessage] = useState('')
+    const location = useLocation()
+    
+    const { setSession } = useAuth()
     const navigate = useNavigate()
+
+    // Récupération du message de succès depuis l'état de navigation
+    useEffect(() => {
+        if (location.state?.message) {
+            setSuccessMessage(location.state.message);
+            // Nettoyer l'URL après affichage du message
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -20,15 +35,52 @@ function Login() {
             [name]: value
         }))
         // Effacer l'erreur quand l'utilisateur tape
-        if (error) clearError()
+        if (error) setError('')
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setError('')
+        setLoading(true)
 
-        const result = await login(formData)
-        if (result.success) {
+        try {
+            const { data } = await apiClient.post('/auth/login', formData)
+            
+            if (data.email_verification_required) {
+                navigate('/verify-email', {
+                    state: {
+                        email: data.user?.email || formData.email,
+                        message: data.message || 'Votre email doit être vérifié avant de pouvoir accéder à votre compte.',
+                        fromLogin: true
+                    }
+                })
+                return
+            }
+            
+            setSession(data.user, data.token)
             navigate('/')
+        } catch (error) {
+            console.log('Login error:', error)
+            
+            // Gestion des erreurs plus spécifique
+            if (error.response?.status === 422) {
+                // Erreurs de validation Laravel
+                const errors = error.response.data.errors
+                if (errors?.email) {
+                    setError(errors.email[0])
+                } else {
+                    setError('Erreur de validation')
+                }
+            } else if (error.response?.status === 429) {
+                // Rate limiting
+                setError('Trop de tentatives. Veuillez patienter avant de réessayer.')
+            } else if (error.response?.data?.message) {
+                setError(error.response.data.message)
+            } else {
+                setError('Une erreur est survenue lors de la connexion.')
+            }
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -37,13 +89,28 @@ function Login() {
             title="Connexion"
             subtitle="Accédez à votre espace personnel"
         >
+            {successMessage && (
+                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg mb-6 shadow-sm">
+                    <div className="flex">
+                        <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                            <p>{successMessage}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 shadow-sm">
                     <div className="flex">
                         <svg className="w-5 h-5 text-red-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                         </svg>
-                        {error}
+                        <div>
+                            <p>{error}</p>
+                        </div>
                     </div>
                 </div>
             )}

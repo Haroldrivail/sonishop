@@ -9,13 +9,17 @@ import {
   EyeIcon,
   TruckIcon,
   TagIcon,
-  ClockIcon
+  ClockIcon,
+  SearchIcon
 } from '../icons'
 
 const ProductGrid = ({ products }) => {
   const [viewMode, setViewMode] = useState('grid') // 'grid' ou 'list'
   const { addToCart, toggleWishlist, isInWishlist } = useCart()
-  const { success, info } = useToast()
+  const { showToast } = useToast()
+
+  const toastSuccess = (message) => showToast({ type: 'success', title: message })
+  const toastInfo = (message) => showToast({ type: 'info', title: message })
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -51,17 +55,15 @@ const ProductGrid = ({ products }) => {
 
     const handleAddToCart = () => {
       const success_add = addToCart(product)
-      if (success_add) {
-        success(`${product.name} ajouté au panier`)
-      }
+  if (success_add) toastSuccess(`${product.name} ajouté au panier`)
     }
 
-    const handleToggleWishlist = () => {
-      const added = toggleWishlist(product)
-      if (added) {
-        info(`${product.name} ajouté aux favoris`)
+    const handleToggleWishlist = async () => {
+      const result = await toggleWishlist(product)
+      if (result?.attached) {
+        toastInfo(`${product.name} ajouté aux favoris`)
       } else {
-        info(`${product.name} retiré des favoris`)
+        toastInfo(`${product.name} retiré des favoris`)
       }
     }
 
@@ -106,7 +108,7 @@ const ProductGrid = ({ products }) => {
                   
                   <button
                     onClick={handleToggleWishlist}
-                    className={`p-2 rounded-full transition-colors ${
+                    className={`p-2 rounded-full transition-colors cursor-pointer ${
                       isProductInWishlist 
                         ? 'text-red-500 bg-red-50' 
                         : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
@@ -154,10 +156,10 @@ const ProductGrid = ({ products }) => {
                   </Link>
                   <button
                     onClick={handleAddToCart}
-                    className="bg-soni-orange text-white px-4 py-2 rounded-lg hover:bg-soni-orange/90 transition-colors flex items-center gap-2"
+                    className="bg-soni-orange text-blue-900 z-10 px-4 py-2 rounded-lg hover:bg-soni-orange/90 transition-colors flex items-center gap-2"
                   >
                     <ShoppingCartIcon className="w-4 h-4" />
-                    Ajouter
+                    Ajouter au panier
                   </button>
                 </div>
               </div>
@@ -170,117 +172,119 @@ const ProductGrid = ({ products }) => {
     // Mode grille (par défaut)
     return (
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 group">
-        {/* Image */}
-        <div className="relative aspect-square overflow-hidden">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1">
-            {hasDiscount && (
-              <div className="bg-red-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                <TagIcon className="w-3 h-3" />
-                -{discountPercent}%
-              </div>
-            )}
-            {product.isNew && (
-              <div className="bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                <ClockIcon className="w-3 h-3" />
-                Nouveau
-              </div>
-            )}
+      {/* Image */}
+      <div className="relative aspect-square overflow-hidden">
+        <img
+        src={product.image}
+        alt={product.name}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1">
+        {hasDiscount && (
+          <div className="bg-red-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+          <TagIcon className="w-3 h-3" />
+          -{product.discountPercent ?? product.discount_percent ?? discountPercent}%
           </div>
-
-          {/* Actions hover */}
-          <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleToggleWishlist}
-              className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
-                isProductInWishlist 
-                  ? 'text-red-500 bg-white/90' 
-                  : 'text-gray-600 bg-white/90 hover:text-red-500'
-              }`}
-            >
-              <HeartIcon className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
-            </button>
-            
-            <Link
-              to={`/products/${product.id}`}
-              className="p-2 rounded-full bg-white/90 text-gray-600 hover:text-soni-navy transition-colors"
-            >
-              <EyeIcon className="w-5 h-5" />
-            </Link>
+        )}
+        {(product.isNew ?? product.is_new) && (
+          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+          <ClockIcon className="w-3 h-3" />
+          Nouveau
           </div>
-
-          {/* Bouton d'achat rapide */}
-          <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleAddToCart}
-              className="w-full bg-soni-orange text-white py-2 px-4 rounded-lg hover:bg-soni-orange/90 transition-colors flex items-center justify-center gap-2"
-            >
-              <ShoppingCartIcon className="w-4 h-4" />
-              Ajouter au panier
-            </button>
-          </div>
+        )}
         </div>
 
-        {/* Contenu */}
-        <div className="p-4">
-          <Link 
-            to={`/products/${product.id}`}
-            className="block text-lg font-semibold text-gray-900 hover:text-soni-navy transition-colors line-clamp-2 mb-2"
+        {/* Actions hover */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={handleToggleWishlist}
+          className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
+          isProductInWishlist 
+            ? 'text-red-500 bg-white/90' 
+            : 'text-gray-600 bg-white/90 hover:text-red-500'
+          }`}
+        >
+          <HeartIcon className={`w-5 h-5 ${isProductInWishlist ? 'fill-current' : ''}`} />
+        </button>
+        
+        <Link
+          to={`/products/${product.id}`}
+          className="p-2 rounded-full bg-white/90 text-gray-600 hover:text-soni-navy transition-colors"
+        >
+          <EyeIcon className="w-5 h-5" />
+        </Link>
+        </div>
+
+        {/* Bouton d'achat rapide (toujours visible sur mobile) */}
+        <div className="absolute bottom-3 left-3 right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={handleAddToCart}
+            disabled={product.inStock === false || product.is_in_stock === false}
+            className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform active:scale-[0.98] hover:cursor-pointer mb-2"
+            aria-label="Ajouter au panier"
           >
-            {product.name}
-          </Link>
-          
-          {product.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-              {product.description}
-            </p>
-          )}
-
-          {/* Rating et livraison */}
-          <div className="flex items-center justify-between mb-3">
-            {product.rating && renderStars(product.rating)}
-            {product.freeShipping && (
-              <div className="flex items-center text-green-600 text-xs">
-                <TruckIcon className="w-3 h-3 mr-1" />
-                Livraison gratuite
-              </div>
-            )}
-          </div>
-
-          {/* Prix */}
-          <div className="flex items-center justify-between">
-            <div>
-              {hasDiscount ? (
-                <div className="flex flex-col">
-                  <span className="text-lg font-bold text-soni-orange">
-                    {formatPrice(product.salePrice)}
-                  </span>
-                  <span className="text-sm text-gray-500 line-through">
-                    {formatPrice(product.price)}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-lg font-bold text-gray-900">
-                  {formatPrice(product.price)}
-                </span>
-              )}
-            </div>
-
-            <div className="text-xs text-gray-500">
-              {product.inStock !== false ? (
-                <span className="text-green-600">En stock</span>
-              ) : (
-                <span className="text-red-600">Rupture</span>
-              )}
-            </div>
-          </div>
+            <ShoppingCartIcon className="w-4 h-4" />
+            {(product.inStock === false || product.is_in_stock === false) ? 'Rupture' : 'Ajouter au panier'}
+          </button>
         </div>
+      </div>
+
+      {/* Contenu */}
+      <div className="p-4">
+        <Link 
+        to={`/products/${product.id}`}
+        className="block text-lg font-semibold text-gray-900 hover:text-soni-navy transition-colors line-clamp-2 mb-2"
+        >
+        {product.name}
+        </Link>
+        
+        {product.description && (
+        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+          {product.description}
+        </p>
+        )}
+
+        {/* Rating et livraison */}
+        <div className="flex items-center justify-between mb-3">
+        {product.rating && renderStars(product.rating)}
+        {(product.freeShipping ?? product.free_shipping) && (
+          <div className="flex items-center text-green-600 text-xs">
+          <TruckIcon className="w-3 h-3 mr-1" />
+          Livraison gratuite
+          </div>
+        )}
+        </div>
+
+        {/* Prix */}
+        <div className="flex items-center justify-between">
+        <div>
+          {hasDiscount ? (
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-soni-orange">
+            {formatPrice(product.salePrice ?? product.sale_price ?? product.price)}
+            </span>
+            <span className="text-sm text-gray-500 line-through">
+            {formatPrice(product.price)}
+            </span>
+          </div>
+          ) : (
+          <span className="text-lg font-bold text-gray-900">
+            {formatPrice(product.price)}
+          </span>
+          )}
+        </div>
+
+        <div className="text-xs text-gray-500">
+          {(product.isInStock ?? product.is_in_stock ?? (product.inStock !== false)) ? (
+          <span className="text-green-600">En stock</span>
+          ) : (
+          <span className="text-red-600">Rupture</span>
+          )}
+        </div>
+        </div>
+      </div>
       </div>
     )
   }

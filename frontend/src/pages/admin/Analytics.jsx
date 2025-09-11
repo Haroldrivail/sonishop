@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import EmptyState, { LoadingState, ErrorState } from '../../components/admin/EmptyState'
+import { apiClient } from '../../api/client'
+import ENDPOINTS from '../../api/endpoints'
 import {
     ChartBarIcon,
     TrendingUpIcon,
-    TrendingDownIcon,
     CalendarIcon,
     DownloadIcon,
     EyeIcon
@@ -11,45 +13,42 @@ import {
 const Analytics = () => {
     const [timeRange, setTimeRange] = useState('30d')
     const [chartType, setChartType] = useState('revenue')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const [analytics, setAnalytics] = useState({ days: [], totals: { revenue: 0, orders: 0, customers: 0, avg_order_value: 0 }, top_products: [], categories: [] })
 
-    // Données simulées pour les graphiques
-    const salesData = {
-        '7d': [
-            { date: '2025-08-06', revenue: 450000, orders: 12, customers: 8 },
-            { date: '2025-08-07', revenue: 620000, orders: 18, customers: 15 },
-            { date: '2025-08-08', revenue: 380000, orders: 9, customers: 7 },
-            { date: '2025-08-09', revenue: 750000, orders: 22, customers: 19 },
-            { date: '2025-08-10', revenue: 520000, orders: 15, customers: 12 },
-            { date: '2025-08-11', revenue: 890000, orders: 28, customers: 24 },
-            { date: '2025-08-12', revenue: 1150000, orders: 35, customers: 31 }
-        ],
-        '30d': Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(2025, 7, i + 1).toISOString().split('T')[0],
-            revenue: Math.floor(Math.random() * 800000) + 200000,
-            orders: Math.floor(Math.random() * 40) + 5,
-            customers: Math.floor(Math.random() * 35) + 3
-        }))
-    }
+    // Chargement des données dynamiques
+    useEffect(() => {
+        const controller = new AbortController()
+        async function fetchAnalytics() {
+            setLoading(true)
+            setError(null)
+            try {
+                const { data } = await apiClient.get(ENDPOINTS.admin.analytics.summary, { params: { range: timeRange } })
+                setAnalytics(data)
+            } catch (e) {
+                if (e.name !== 'AbortError') setError(e.message || 'Erreur de chargement')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchAnalytics()
+        return () => controller.abort()
+    }, [timeRange])
 
-    const categoryData = [
-        { name: 'Smartphones', value: 45, color: '#1a237e' },
-        { name: 'Ordinateurs', value: 25, color: '#ff6d00' },
-        { name: 'Accessoires', value: 20, color: '#4caf50' },
-        { name: 'Audio', value: 10, color: '#f44336' }
-    ]
+    // Catégories dynamiques (part de revenu)
+    const categoryData = (analytics.categories || []).map((c, idx) => ({
+        name: c.name,
+        value: c.share,
+        color: ['#1a237e', '#ff6d00', '#4caf50', '#f44336', '#9c27b0', '#0097a7'][idx % 6]
+    }))
 
-    const topCustomers = [
-        { name: 'Jean Dupont', orders: 15, total: 2850000, growth: 12.5 },
-        { name: 'Marie Claire', orders: 12, total: 1980000, growth: -5.2 },
-        { name: 'Paul Martin', orders: 10, total: 1650000, growth: 8.7 },
-        { name: 'Sophie Ngono', orders: 8, total: 1420000, growth: 15.3 },
-        { name: 'Pierre Kamga', orders: 7, total: 1180000, growth: -2.1 }
-    ]
+    // Suppression des clients statiques : backend ne fournit pas encore ce bloc
 
-    const currentData = salesData[timeRange]
-    const totalRevenue = currentData.reduce((sum, day) => sum + day.revenue, 0)
-    const totalOrders = currentData.reduce((sum, day) => sum + day.orders, 0)
-    const avgOrderValue = totalRevenue / totalOrders
+    const currentData = analytics.days || []
+    const totalRevenue = analytics.totals?.revenue || 0
+    const totalOrders = analytics.totals?.orders || 0
+    const avgOrderValue = analytics.totals?.avg_order_value || 0
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -60,9 +59,8 @@ const Analytics = () => {
         }).format(price)
     }
 
-    const formatPercentage = (value) => {
-        return `${value > 0 ? '+' : ''}${value}%`
-    }
+    // Placeholder pour futurs pourcentages (croissance) si backend ajoute comparaison
+    // const formatPercentage = (value) => `${value > 0 ? '+' : ''}${value}%`
 
     const getMaxValue = (data, key) => {
         return Math.max(...data.map(item => item[key]))
@@ -155,12 +153,19 @@ const Analytics = () => {
                     >
                         <option value="7d">7 derniers jours</option>
                         <option value="30d">30 derniers jours</option>
-                        <option value="90d">90 derniers jours</option>
                     </select>
-                    <button className="inline-flex items-center px-4 py-2 bg-soni-navy text-white rounded-md hover:bg-soni-navy/90">
-                        <DownloadIcon className="mr-2 h-4 w-4" />
-                        Exporter
-                    </button>
+                    {loading && <span className="text-sm text-gray-500 self-center">Chargement...</span>}
+                    {error && <span className="text-sm text-red-600 self-center">{error}</span>}
+                    <div className="flex gap-2">
+                        <button onClick={() => window.open(`/api/admin/analytics/export/csv?range=${timeRange}`,'_blank')}
+                            className="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm">
+                            CSV
+                        </button>
+                        <button onClick={() => window.open(`/api/admin/analytics/export/pdf?range=${timeRange}`,'_blank')}
+                            className="inline-flex items-center px-3 py-2 bg-soni-navy text-white rounded-md hover:bg-soni-navy/90 text-sm">
+                            <DownloadIcon className="mr-1 h-4 w-4" /> PDF
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -176,11 +181,6 @@ const Analytics = () => {
                             <TrendingUpIcon className="w-6 h-6 text-green-600" />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center text-sm">
-                        <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-green-600">+12.5%</span>
-                        <span className="text-gray-500 ml-2">vs période précédente</span>
-                    </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow">
@@ -192,11 +192,6 @@ const Analytics = () => {
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                             <ChartBarIcon className="w-6 h-6 text-blue-600" />
                         </div>
-                    </div>
-                    <div className="mt-4 flex items-center text-sm">
-                        <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-green-600">+8.3%</span>
-                        <span className="text-gray-500 ml-2">vs période précédente</span>
                     </div>
                 </div>
 
@@ -210,27 +205,17 @@ const Analytics = () => {
                             <TrendingUpIcon className="w-6 h-6 text-purple-600" />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center text-sm">
-                        <TrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
-                        <span className="text-red-600">-2.1%</span>
-                        <span className="text-gray-500 ml-2">vs période précédente</span>
-                    </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Taux de conversion</p>
-                            <p className="text-xl font-bold text-gray-900">3.2%</p>
+                            <p className="text-sm text-gray-600">Nouveaux clients</p>
+                            <p className="text-xl font-bold text-gray-900">{analytics.totals?.customers || 0}</p>
                         </div>
                         <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                            <TrendingUpIcon className="w-6 h-6 text-orange-600" />
+                            <ChartBarIcon className="w-6 h-6 text-orange-600" />
                         </div>
-                    </div>
-                    <div className="mt-4 flex items-center text-sm">
-                        <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-green-600">+0.8%</span>
-                        <span className="text-gray-500 ml-2">vs période précédente</span>
                     </div>
                 </div>
             </div>
@@ -251,11 +236,21 @@ const Analytics = () => {
                             <option value="customers">Nouveaux clients</option>
                         </select>
                     </div>
-                    <SimpleBarChart
-                        data={currentData}
-                        dataKey={chartType}
-                        color={chartType === 'revenue' ? '#1a237e' : chartType === 'orders' ? '#ff6d00' : '#4caf50'}
-                    />
+                    {currentData.length === 0 && !loading && (
+                        <EmptyState 
+                            type="analytics"
+                            title="Aucune donnée analytique"
+                            description="Les données apparaîtront une fois que votre boutique aura de l'activité."
+                            illustration={false}
+                        />
+                    )}
+                    {currentData.length > 0 && (
+                        <SimpleBarChart
+                            data={currentData}
+                            dataKey={chartType}
+                            color={chartType === 'revenue' ? '#1a237e' : chartType === 'orders' ? '#ff6d00' : '#4caf50'}
+                        />
+                    )}
                 </div>
 
                 {/* Category Distribution */}
@@ -267,80 +262,90 @@ const Analytics = () => {
 
             {/* Top Customers & Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Top Customers */}
+                {/* Top Products */}
                 <div className="bg-white p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900">Top Clients</h3>                        
-                        <button className="group flex justify-center items-center p-2 border border-transparent text-base font-bold rounded-xl text-white bg-blue-400  hover:bg-blue-500 focus:outline-none focus:ring-4 focus:ring-soni-navy/30  transition-all duration-200 shadow-lg hover:shadow-xl  hover:cursor-pointer">
-                            Voir tout
-                        </button>
+                        <h3 className="text-lg font-semibold text-gray-900">Top Produits</h3>
                     </div>
                     <div className="space-y-4">
-                        {topCustomers.map((customer, index) => (
+                        {(analytics.top_products || []).map((p, index) => (
                             <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div className="flex items-center">
-                                    <div className="w-10 h-10 bg-soni-navy rounded-full flex items-center justify-center text-primary font-medium">
-                                        {customer.name.charAt(0)}
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="font-medium text-gray-900">{customer.name}</p>
-                                        <p className="text-sm text-gray-600">{customer.orders} commandes</p>
-                                    </div>
+                                <div>
+                                    <p className="font-medium text-gray-900">{p.name}</p>
+                                    <p className="text-xs text-gray-600">{p.qty} unités</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-semibold text-gray-900">{formatPrice(customer.total)}</p>
-                                    <p className={`text-sm ${customer.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatPercentage(customer.growth)}
-                                    </p>
+                                    <p className="font-semibold text-gray-900">{formatPrice(p.revenue)}</p>
                                 </div>
                             </div>
                         ))}
+                        {(!analytics.top_products || analytics.top_products.length === 0) && !loading && (
+                            <EmptyState 
+                                type="analytics"
+                                title="Aucun produit vendu"
+                                description="Les statistiques de vente apparaîtront une fois que vous aurez des commandes."
+                                illustration={false}
+                            />
+                        )}
                     </div>
                 </div>
 
-                {/* Performance Metrics */}
+                {/* Performance Metrics (dynamiques) */}
                 <div className="bg-white p-6 rounded-lg shadow">
                     <h3 className="text-lg font-semibold text-gray-900 mb-6">Métriques de performance</h3>
                     <div className="space-y-6">
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Taux de satisfaction client</span>
-                                <span className="text-sm font-medium">94%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className="bg-green-500 h-2 rounded-full" style={{ width: '94%' }}></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Taux de fidélisation</span>
-                                <span className="text-sm font-medium">76%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '76%' }}></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Temps de livraison moyen</span>
-                                <span className="text-sm font-medium">2.3 jours</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className="bg-orange-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Taux de retour</span>
-                                <span className="text-sm font-medium">2.1%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className="bg-red-500 h-2 rounded-full" style={{ width: '2.1%' }}></div>
-                            </div>
-                        </div>
+                        {(() => {
+                            const perf = analytics.performance || {}
+                            const items = [
+                                {
+                                    key: 'customer_satisfaction',
+                                    label: 'Satisfaction client',
+                                    value: perf.customer_satisfaction,
+                                    type: 'percent',
+                                    color: 'bg-green-500'
+                                },
+                                {
+                                    key: 'retention_rate',
+                                    label: 'Taux de fidélisation',
+                                    value: perf.retention_rate,
+                                    type: 'percent',
+                                    color: 'bg-blue-500'
+                                },
+                                {
+                                    key: 'avg_delivery_time_days',
+                                    label: 'Délai moyen livraison (jours)',
+                                    value: perf.avg_delivery_time_days,
+                                    type: 'number',
+                                    color: 'bg-orange-500'
+                                },
+                                {
+                                    key: 'return_rate_percent',
+                                    label: 'Taux de retour',
+                                    value: perf.return_rate_percent,
+                                    type: 'percent',
+                                    color: 'bg-red-500'
+                                }
+                            ]
+                            return items.map(item => {
+                                const display = (item.value === null || item.value === undefined)
+                                    ? '—'
+                                    : (item.type === 'percent' ? `${item.value}%` : item.value)
+                                const width = (item.value === null || item.value === undefined)
+                                    ? 0
+                                    : Math.min(100, item.value)
+                                return (
+                                    <div key={item.key}>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm text-gray-600">{item.label}</span>
+                                            <span className="text-sm font-medium">{display}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                            <div className={`${item.color} h-2 rounded-full transition-all duration-500`} style={{ width: `${width}%` }} />
+                                        </div>
+                                    </div>
+                                )
+                            })
+                        })()}
                     </div>
                 </div>
             </div>

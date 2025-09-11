@@ -1,66 +1,78 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRightIcon } from '../components/icons'
+import { api } from '../api/client'
+
+// Palette de dégradés réutilisable si l'API ne fournit pas de couleur
+const gradientPool = [
+  'from-blue-500 to-blue-600',
+  'from-purple-500 to-purple-600',
+  'from-green-500 to-green-600',
+  'from-orange-500 to-orange-600',
+  'from-red-500 to-red-600',
+  'from-indigo-500 to-indigo-600',
+  'from-teal-500 to-teal-600'
+]
 
 const Categories = () => {
-  const categories = [
-    {
-      id: 'smartphones',
-      name: 'Smartphones',
-      description: 'Les derniers modèles de téléphones intelligents',
-      image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500',
-      productCount: 25,
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      id: 'laptops',
-      name: 'Ordinateurs portables',
-      description: 'Performants et polyvalents pour tous vos besoins',
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500',
-      productCount: 18,
-      color: 'from-purple-500 to-purple-600'
-    },
-    {
-      id: 'tablets',
-      name: 'Tablettes',
-      description: 'Parfaites pour le travail et le divertissement',
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500',
-      productCount: 12,
-      color: 'from-green-500 to-green-600'
-    },
-    {
-      id: 'audio',
-      name: 'Audio',
-      description: 'Casques, écouteurs et systèmes audio premium',
-      image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=500',
-      productCount: 32,
-      color: 'from-orange-500 to-orange-600'
-    },
-    {
-      id: 'watches',
-      name: 'Montres connectées',
-      description: 'Suivez votre forme et restez connecté',
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
-      productCount: 15,
-      color: 'from-red-500 to-red-600'
-    },
-    {
-      id: 'accessories',
-      name: 'Accessoires',
-      description: 'Coques, chargeurs et autres accessoires',
-      image: 'https://images.unsplash.com/photo-1609205807107-e3b433c49e11?w=500',
-      productCount: 45,
-      color: 'from-indigo-500 to-indigo-600'
-    },
-    {
-      id: 'electronics',
-      name: 'Électronique & Réseaux',
-      description: 'Équipements réseau, serveurs et systèmes de sécurité',
-      image: 'https://images.unsplash.com/photo-1558618047-3c0c8c5c8d3e?w=500',
-      productCount: 28,
-      color: 'from-teal-500 to-teal-600'
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let isMounted = true
+    const fetchCategories = async () => {
+      setLoading(true)
+      try {
+        const res = await api.categories.getAll()
+        const apiData = res.data?.data || []
+        // Map backend -> UI (ajout d'un dégradé et d'un compteur placeholder si absent)
+        const mapped = apiData.map((c, idx) => ({
+          id: c.slug || c.id,
+          slug: c.slug,
+          name: c.name,
+          description: c.description || '',
+          image: c.image_url || c.image || `https://source.unsplash.com/random/800x600?tech,${c.slug}`,
+          productCount: c.products_count ?? c.products?.length ?? 0,
+          color: gradientPool[idx % gradientPool.length]
+        }))
+        if (isMounted) setCategories(mapped)
+      } catch (e) {
+        console.error('Erreur chargement catégories', e)
+        if (isMounted) setError("Impossible de charger les catégories.")
+      } finally {
+        if (isMounted) setLoading(false)
+      }
     }
-  ]
+    fetchCategories()
+    return () => { isMounted = false }
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+          <p className="text-gray-600">Chargement des catégories...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white shadow rounded-lg p-8 max-w-md text-center">
+          <h2 className="text-xl font-semibold mb-2 text-red-600">Erreur</h2>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-soni-navy text-white rounded hover:bg-soni-navy/90"
+          >Réessayer</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,7 +109,7 @@ const Categories = () => {
                   />
                   {/* Gradient Overlay */}
                   <div className={`absolute inset-0 bg-gradient-to-t ${category.color} opacity-60 group-hover:opacity-40 transition-opacity duration-300`}></div>
-                  
+
                   {/* Category Badge */}
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                     <span className="text-sm font-semibold text-gray-800">
@@ -150,27 +162,92 @@ const Categories = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.slice(0, 4).map(category => (
-              <Link
-                key={`popular-${category.id}`}
-                to={`/products?category=${category.id}`}
-                className="group text-center p-6 rounded-xl bg-gray-50 hover:bg-gradient-to-br hover:from-soni-navy/5 hover:to-blue-600/5 transition-all duration-300"
-              >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <span className="text-white font-bold text-xl">
-                    {category.name.charAt(0)}
-                  </span>
+          {/* Fetch popular categories from the API (fallback to getAll and pick top 4) */}
+          {(() => {
+            const Popular = () => {
+              const [popular, setPopular] = useState([])
+              const [loadingPop, setLoadingPop] = useState(true)
+
+              useEffect(() => {
+                let mounted = true
+                const fetchPopular = async () => {
+                  setLoadingPop(true)
+                  try {
+                    let res
+                    if (api.categories.getPopular) {
+                      // preferred endpoint if available
+                      res = await api.categories.getPopular()
+                    } else {
+                      // fallback to all categories and pick top by product count
+                      res = await api.categories.getAll()
+                    }
+                    const apiData = res?.data?.data || []
+                    let items = apiData
+
+                    if (!api.categories.getPopular) {
+                      // sort copy by products_count (or products length) and take top 4
+                      items = [...apiData].sort(
+                        (a, b) =>
+                          (b.products_count ?? b.products?.length ?? 0) -
+                          (a.products_count ?? a.products?.length ?? 0)
+                      ).slice(0, 4)
+                    } else {
+                      // ensure we only render up to 4 if API returns more
+                      items = apiData.slice(0, 4)
+                    }
+
+                    if (mounted) setPopular(items)
+                  } catch (e) {
+                    console.error('Erreur chargement catégories populaires', e)
+                  } finally {
+                    if (mounted) setLoadingPop(false)
+                  }
+                }
+
+                fetchPopular()
+                return () => { mounted = false }
+              }, [])
+
+              if (loadingPop) {
+                return (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Chargement des catégories populaires...</p>
+                  </div>
+                )
+              }
+
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {popular.map(category => {
+                    const id = category.slug || category.id
+                    const count = category.products_count ?? category.products?.length ?? 0
+                    return (
+                      <Link
+                        key={`popular-${id}`}
+                        to={`/products?category=${id}`}
+                        className="group text-center p-6 rounded-xl bg-gray-50 hover:bg-gradient-to-br hover:from-soni-navy/5 hover:to-blue-600/5 transition-all duration-300"
+                      >
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                          <span className="text-white font-bold text-xl">
+                            {(category.name || '').charAt(0)}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 group-hover:text-soni-navy transition-colors">
+                          {category.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {count} produits
+                        </p>
+                      </Link>
+                    )
+                  })}
                 </div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-soni-navy transition-colors">
-                  {category.name}
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {category.productCount} produits
-                </p>
-              </Link>
-            ))}
-          </div>
+              )
+            }
+
+            return <Popular />
+          })()}
         </div>
       </section>
 

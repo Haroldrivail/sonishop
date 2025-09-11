@@ -1,10 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { SearchIcon, XIcon, AdjustmentsIcon } from '../icons'
 
-const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount }) => {
-  const [searchTerm, setSearchTerm] = useState('')
+const SearchBar = ({
+  onSearch,
+  onSortChange,
+  sortBy,
+  resultsCount,
+  totalCount,
+  debounceDelay = 1000,
+  searchValue = '',
+  onResetAll,
+  hasActiveFilters = false,
+}) => {
+  const [searchTerm, setSearchTerm] = useState(searchValue)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef(null)
+  const debounceRef = useRef(null)
 
   const sortOptions = [
     { value: 'default', label: 'Pertinence' },
@@ -23,18 +34,30 @@ const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount })
     'Casque audio', 'Router', 'Switch', 'Camera'
   ]
 
-  const handleSearch = (value) => {
+  const triggerSearch = (value) => {
+    onSearch && onSearch(value)
+  }
+
+  const handleSearchChange = (value) => {
     setSearchTerm(value)
-    onSearch(value)
+    // Debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      triggerSearch(value)
+    }, debounceDelay)
   }
 
   const handleSuggestionClick = (suggestion) => {
-    handleSearch(suggestion)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setSearchTerm(suggestion)
+    triggerSearch(suggestion)
     setShowSuggestions(false)
   }
 
   const clearSearch = () => {
-    handleSearch('')
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setSearchTerm('')
+    triggerSearch('')
     searchRef.current?.focus()
   }
 
@@ -49,6 +72,11 @@ const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount })
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Sync external search value -> internal state
+  useEffect(() => {
+    setSearchTerm(searchValue)
+  }, [searchValue])
+
   return (
     <div className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -56,7 +84,7 @@ const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount })
           
           {/* Barre de recherche */}
           <div className="relative flex-1 max-w-md" ref={searchRef}>
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SearchIcon className="h-5 w-5 text-gray-400" />
               </div>
@@ -64,18 +92,29 @@ const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount })
                 type="text"
                 placeholder="Rechercher un produit..."
                 value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 onFocus={() => setShowSuggestions(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' && searchTerm) {
+                    clearSearch()
+                  } else if (e.key === 'Enter') {
+                    // Enter: déclenche immédiat sans attendre le debounce
+                    if (debounceRef.current) clearTimeout(debounceRef.current)
+                    triggerSearch(searchTerm)
+                  }
+                }}
                 className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-orange focus:border-soni-orange outline-none transition-all"
               />
-              {searchTerm && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <XIcon className="h-5 w-5" />
-                </button>
-              )}
+              <button
+                onClick={clearSearch}
+                aria-label="Effacer la recherche"
+                title="Effacer la recherche"
+                disabled={!searchTerm}
+                className={`relative z-10 -ml-1 px-3 py-2 rounded-lg border text-sm flex items-center gap-1 transition-colors ${searchTerm ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+              >
+                <XIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Effacer</span>
+              </button>
             </div>
 
             {/* Suggestions de recherche */}
@@ -126,6 +165,17 @@ const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount })
                 ))}
               </select>
             </div>
+
+            {/* Reset global */}
+            <div>
+              <button
+                onClick={() => { onResetAll && onResetAll(); clearSearch(); }}
+                disabled={!hasActiveFilters}
+                className={`text-xs font-medium px-3 py-2 rounded-lg border transition-colors ${hasActiveFilters ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+              >
+                Réinitialiser
+              </button>
+            </div>
           </div>
         </div>
 
@@ -141,6 +191,11 @@ const SearchBar = ({ onSearch, onSortChange, sortBy, resultsCount, totalCount })
                   Aucun produit trouvé. Essayez d'autres mots-clés.
                 </p>
               )}
+              <button
+                onClick={clearSearch}
+                className="ml-4 text-xs font-medium text-soni-orange hover:text-soni-orange/80 transition-colors"
+                disabled={!searchTerm}
+              >Effacer</button>
             </div>
           </div>
         )}

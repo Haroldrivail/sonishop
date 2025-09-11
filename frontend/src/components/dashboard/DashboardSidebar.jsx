@@ -94,7 +94,7 @@ const DashboardSidebar = ({
     // Version Desktop
     return (
         <div className={`
-            hidden lg:flex lg:flex-shrink-0 relative z-30
+            hidden lg:flex lg:flex-shrink-0 top-0 sticky z-30 h-screen
             transition-all duration-300 ease-in-out
             ${isCollapsed ? 'w-20' : 'w-60'}
         `}>
@@ -264,16 +264,33 @@ const SidebarContent = ({
                         <div className="flex items-center">
                             {/* Avatar utilisateur amélioré */}
                             <div className="relative">
-                                <div className="w-10 h-10 bg-blue-500 to-accent-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy">
+                                {user?.avatar || user?.profile_image ? (
+                                    <img
+                                        src={user.avatar || user.profile_image}
+                                        alt={user?.name || 'Avatar'}
+                                        className="w-10 h-10 rounded-xl object-cover shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy"
+                                        onError={(e) => {
+                                            // Fallback vers initiales si l'image échoue
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                ) : null}
+                                <div 
+                                    className={`w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy ${
+                                        user?.avatar || user?.profile_image ? 'hidden' : 'flex'
+                                    }`}
+                                    style={user?.avatar || user?.profile_image ? {display: 'none'} : {}}
+                                >
                                     <span className="text-white font-bold text-sm tracking-wide">
-                                        {(user?.name || 'Admin').charAt(0).toUpperCase()}
+                                        {(user?.name || user?.first_name || 'Admin').charAt(0).toUpperCase()}
                                     </span>
                                 </div>
                                 {/* Indicateur de statut en ligne */}
                                 <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-soni-navy shadow-sm"></div>
                             </div>
                             <div className="ml-4 flex-1">
-                                <p className="text-sm font-bold text-primary truncate tracking-wide">{user?.name || 'Administrateur'}</p>
+                                <p className="text-sm font-bold text-white truncate tracking-wide">{user?.name || user?.first_name || 'Administrateur'}</p>
                                 <p className="text-xs text-soni-orange/80 truncate font-medium">{user?.email || 'admin@sonishop.com'}</p>
                                 <div className="flex items-center mt-1">
                                     <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
@@ -285,9 +302,26 @@ const SidebarContent = ({
                 )}
                 {isCollapsed && (
                     <div className="relative">
-                        <div className="w-10 h-10 bg-blue-500 to-accent-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy">
+                        {user?.avatar || user?.profile_image ? (
+                            <img
+                                src={user.avatar || user.profile_image}
+                                alt={user?.name || 'Avatar'}
+                                className="w-10 h-10 rounded-xl object-cover shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy"
+                                onError={(e) => {
+                                    // Fallback vers initiales si l'image échoue
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : null}
+                        <div 
+                            className={`w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-soni-orange/30 ring-offset-2 ring-offset-soni-navy ${
+                                user?.avatar || user?.profile_image ? 'hidden' : 'flex'
+                            }`}
+                            style={user?.avatar || user?.profile_image ? {display: 'none'} : {}}
+                        >
                             <span className="text-white font-bold text-sm tracking-wide">
-                                {(user?.name || 'Admin').charAt(0).toUpperCase()}
+                                {(user?.name || user?.first_name || 'Admin').charAt(0).toUpperCase()}
                             </span>
                         </div>
                         {/* Indicateur de statut en ligne */}

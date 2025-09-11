@@ -89,13 +89,6 @@ const Favorites = () => {
                 {wishlist.length} {wishlist.length === 1 ? 'produit favori' : 'produits favoris'}
               </p>
             </div>
-            
-            {wishlist.length > 0 && (
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Connecté en tant que</p>
-                <p className="font-semibold text-[#1a237e]">{user?.email}</p>
-              </div>
-            )}
           </div>
         </div>
 

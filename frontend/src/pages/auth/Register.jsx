@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { apiClient } from '../../api/client'
 import { EyeIcon, EyeOffIcon, ArrowRightIcon } from '../../components/icons/CommonIcons'
 import AuthLayout from '../../components/layout/AuthLayout'
 
@@ -11,12 +11,14 @@ function Register() {
         password: '',
         password_confirmation: '',
         phone: '',
-        address: ''
+        city: '',
+        quartier: ''
     })
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-    const [formErrors, setFormErrors] = useState({})
-    const { register, loading, error, clearError } = useAuth()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+
     const navigate = useNavigate()
 
     const handleChange = (e) => {
@@ -26,59 +28,36 @@ function Register() {
             [name]: value
         }))
 
-        // Effacer l'erreur pour ce champ spécifique
-        if (formErrors[name]) {
-            setFormErrors(prev => ({
-                ...prev,
-                [name]: null
-            }))
-        }
-
-        // Effacer l'erreur générale quand l'utilisateur tape
-        if (error) clearError()
-    }
-
-    const validateForm = () => {
-        const errors = {}
-
-        if (!formData.name.trim()) {
-            errors.name = 'Le nom est requis'
-        }
-
-        if (!formData.email.trim()) {
-            errors.email = 'L\'email est requis'
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            errors.email = 'L\'email n\'est pas valide'
-        }
-
-        if (!formData.password) {
-            errors.password = 'Le mot de passe est requis'
-        } else if (formData.password.length < 8) {
-            errors.password = 'Le mot de passe doit contenir au moins 8 caractères'
-        }
-
-        if (!formData.password_confirmation) {
-            errors.password_confirmation = 'La confirmation du mot de passe est requise'
-        } else if (formData.password !== formData.password_confirmation) {
-            errors.password_confirmation = 'Les mots de passe ne correspondent pas'
-        }
-
-        if (!formData.phone.trim()) {
-            errors.phone = 'Le numéro de téléphone est requis'
-        }
-
-        setFormErrors(errors)
-        return Object.keys(errors).length === 0
+        // Effacer l'erreur quand l'utilisateur tape
+        if (error) setError('')
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setError('')
+        setLoading(true)
 
-        if (!validateForm()) return
-
-        const result = await register(formData)
-        if (result.success) {
-            navigate('/verify-email')
+        try {
+            const { data } = await apiClient.post('/auth/register', formData)
+            // Contrat: pas de token, email_verification_required attendu
+            if (data.email_verification_required) {
+                navigate('/verify-email?registered=1', {
+                    state: { email: formData.email.trim().toLowerCase() }
+                })
+            } else {
+                // fallback (au cas où flux web)
+                navigate('/')
+            }
+        } catch (error) {
+            if (error.response?.status === 422) {
+                const errs = error.response.data.errors
+                const first = Object.values(errs || {})[0]
+                setError(first || 'Erreur de validation')
+            } else {
+                setError(error.response?.data?.message || error.message || 'Erreur inconnue')
+            }
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -112,10 +91,9 @@ function Register() {
                             required
                             value={formData.name}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 border ${formErrors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light`}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
                             placeholder="Votre nom complet"
                         />
-                        {formErrors.name && <p className="mt-2 text-sm text-red-600 font-medium">{formErrors.name}</p>}
                     </div>
 
                     <div>
@@ -130,10 +108,9 @@ function Register() {
                             required
                             value={formData.email}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 border ${formErrors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light`}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
                             placeholder="exemple@email.com"
                         />
-                        {formErrors.email && <p className="mt-2 text-sm text-red-600 font-medium">{formErrors.email}</p>}
                     </div>
 
                     <div>
@@ -148,25 +125,36 @@ function Register() {
                             required
                             value={formData.phone}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 border ${formErrors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light`}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
                             placeholder="Votre numéro de téléphone"
                         />
-                        {formErrors.phone && <p className="mt-2 text-sm text-red-600 font-medium">{formErrors.phone}</p>}
                     </div>
 
-                    <div>
-                        <label htmlFor="address" className="block text-sm font-semibold text-soni-navy mb-2">
-                            Adresse de livraison
-                        </label>
-                        <textarea
-                            id="address"
-                            name="address"
-                            rows={3}
-                            value={formData.address}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light resize-none"
-                            placeholder="Votre adresse complète (optionnel)"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label htmlFor="city" className="block text-sm font-semibold text-soni-navy mb-2">Ville</label>
+                            <input
+                                id="city"
+                                name="city"
+                                type="text"
+                                value={formData.city}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
+                                placeholder="Ex: Douala"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="quartier" className="block text-sm font-semibold text-soni-navy mb-2">Quartier</label>
+                            <input
+                                id="quartier"
+                                name="quartier"
+                                type="text"
+                                value={formData.quartier}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
+                                placeholder="Ex: Bonapriso"
+                            />
+                        </div>
                     </div>
 
                     <div>
@@ -182,7 +170,7 @@ function Register() {
                                 required
                                 value={formData.password}
                                 onChange={handleChange}
-                                className={`w-full px-4 py-3 pr-12 border ${formErrors.password ? 'border-red-300 bg-red-50' : 'border-gray-200'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light`}
+                                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
                                 placeholder="••••••••••••"
                             />
                             <button
@@ -191,13 +179,12 @@ function Register() {
                                 onClick={() => setShowPassword(!showPassword)}
                             >
                                 {showPassword ? (
-                                    <EyeOffIcon className="h-5 w-5 text-soni-gray cursor-pointer" />
+                                    <EyeOffIcon className="h-5 w-5 text-gray-500 cursor-pointer" />
                                 ) : (
-                                    <EyeIcon className="h-5 w-5 text-soni-gray cursor-pointer" />
+                                    <EyeIcon className="h-5 w-5 text-gray-500 cursor-pointer" />
                                 )}
                             </button>
                         </div>
-                        {formErrors.password && <p className="mt-2 text-sm text-red-600 font-medium">{formErrors.password}</p>}
                     </div>
 
                     <div>
@@ -213,7 +200,7 @@ function Register() {
                                 required
                                 value={formData.password_confirmation}
                                 onChange={handleChange}
-                                className={`w-full px-4 py-3 pr-12 border ${formErrors.password_confirmation ? 'border-red-300 bg-red-50' : 'border-gray-200'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light`}
+                                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-soni-navy placeholder-soni-gray-light"
                                 placeholder="••••••••••••"
                             />
                             <button
@@ -222,41 +209,16 @@ function Register() {
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             >
                                 {showConfirmPassword ? (
-                                    <EyeOffIcon className="h-5 w-5 text-soni-gray cursor-pointer" />
+                                    <EyeOffIcon className="h-5 w-5 text-gray-500 cursor-pointer" />
                                 ) : (
-                                    <EyeIcon className="h-5 w-5 text-soni-gray cursor-pointer" />
+                                    <EyeIcon className="h-5 w-5 text-gray-500 cursor-pointer" />
                                 )}
                             </button>
                         </div>
-                        {formErrors.password_confirmation && <p className="mt-2 text-sm text-red-600 font-medium">{formErrors.password_confirmation}</p>}
                     </div>
                 </div>
 
-                <div className="flex items-start">
-                    <div className="flex items-center h-5">
-                        <input
-                            id="terms"
-                            name="terms"
-                            type="checkbox"
-                            required
-                            className="h-4 w-4 text-accent-600 focus:ring-accent-500 border-gray-300 rounded transition-all"
-                        />
-                    </div>
-                    <div className="ml-3 text-sm">
-                        <label htmlFor="terms" className="text-soni-gray">
-                            J'accepte les{' '}
-                            <Link to="/terms" className="text-accent-600 hover:text-accent-700 font-medium transition-colors">
-                                conditions d'utilisation
-                            </Link>{' '}
-                            et la{' '}
-                            <Link to="/privacy" className="text-accent-600 hover:text-accent-700 font-medium transition-colors">
-                                politique de confidentialité
-                            </Link>
-                        </label>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
+                <div className="pt-6">
                     <button
                         type="submit"
                         disabled={loading}
@@ -266,9 +228,9 @@ function Register() {
                             <>
                                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
-                                Création en cours...
+                                Inscription en cours...
                             </>
                         ) : (
                             <span className="flex items-center">
@@ -279,11 +241,11 @@ function Register() {
                     </button>
 
                     <div className="text-center">
-                        <p className="text-sm text-soni-gray">
+                        <p className="text-sm text-gray-600">
                             Déjà un compte ?{' '}
                             <Link
                                 to="/login"
-                                className="font-semibold text-accent-600 hover:text-accent-700 transition-colors"
+                                className="font-semibold text-accent-600 hover:text-accent-700 transition-colors hover:underline"
                             >
                                 Se connecter
                             </Link>

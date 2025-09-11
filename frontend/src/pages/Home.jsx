@@ -1,135 +1,129 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowRightIcon, ShoppingCartIcon, HeartIcon, UserIcon, CheckIcon } from '../components/icons'
 import ProductSection from '../components/sections/ProductSection'
 import FeaturedCategories from '../components/sections/FeaturedCategories'
 import SpecialOffers from '../components/sections/SpecialOffers'
 import TestimonialCarousel from '../components/sections/TestimonialCarousel'
+import { useAuth } from '../context/AuthContext'
+import { api } from '../api/client'
 
 const Home = () => {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { login, isAuthenticated } = useAuth()
 
-  // Données des produits en vedette (sélection des meilleurs produits)
-  const featuredProducts = [
-    {
-      id: 1,
-      name: 'iPhone 15 Pro Max',
-      category: 'smartphones',
-      price: 915000,
-      salePrice: 850000,
-      image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400',
-      description: 'Le smartphone le plus avancé d\'Apple avec puce A17 Pro et caméra révolutionnaire.',
-      rating: 4.8,
-      reviews: 324,
-      inStock: true,
-      isNew: true,
-      freeShipping: true,
-      sales: 1250
-    },
-    {
-      id: 2,
-      name: 'MacBook Pro 16"',
-      category: 'laptops',
-      price: 1635000,
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
-      description: 'Ordinateur portable professionnel avec puce M3 Pro pour les créatifs.',
-      rating: 4.9,
-      reviews: 156,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 890
-    },
-    {
-      id: 3,
-      name: 'AirPods Pro 2',
-      category: 'audio',
-      price: 182000,
-      salePrice: 163000,
-      image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=400',
-      description: 'Écouteurs sans fil avec annulation de bruit adaptive et son spatial.',
-      rating: 4.7,
-      reviews: 892,
-      inStock: true,
-      isNew: true,
-      freeShipping: false,
-      sales: 2340
-    },
-    {
-      id: 5,
-      name: 'iPad Pro 12.9"',
-      category: 'tablets',
-      price: 785000,
-      salePrice: 720000,
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400',
-      description: 'Tablette pro avec écran Liquid Retina XDR et puce M2.',
-      rating: 4.8,
-      reviews: 445,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 445
-    },
-    {
-      id: 6,
-      name: 'Sony WH-1000XM5',
-      category: 'audio',
-      price: 261000,
-      salePrice: 248000,
-      image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400',
-      description: 'Casque sans fil avec réduction de bruit leader du marché.',
-      rating: 4.7,
-      reviews: 678,
-      inStock: true,
-      isNew: false,
-      freeShipping: false,
-      sales: 1123
-    },
-    {
-      id: 7,
-      name: 'Router WiFi 6 TP-Link Archer AX73',
-      category: 'electronics',
-      price: 140000,
-      salePrice: 125000,
-      image: 'https://images.unsplash.com/photo-1606904825846-647eb8374a34?w=400',
-      description: 'Routeur WiFi 6 haute performance pour maison connectée.',
-      rating: 4.5,
-      reviews: 256,
-      inStock: true,
-      isNew: true,
-      freeShipping: false,
-      sales: 234
-    },
-    {
-      id: 10,
-      name: 'Onduleur APC 1500VA',
-      category: 'electronics',
-      price: 195000,
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      description: 'Onduleur professionnel pour protection électrique.',
-      rating: 4.8,
-      reviews: 167,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 123
-    },
-    {
-      id: 12,
-      name: 'Dell XPS 13',
-      category: 'laptops',
-      price: 1200000,
-      image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400',
-      description: 'Ultrabook compact et puissant pour professionnels.',
-      rating: 4.5,
-      reviews: 267,
-      inStock: true,
-      isNew: false,
-      freeShipping: true,
-      sales: 345
+  // Dynamic data
+  const [categories, setCategories] = useState([])
+  const [products, setProducts] = useState([])
+  const [featuredProducts, setFeaturedProducts] = useState([])
+  const [offers, setOffers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Gestion de l'authentification après vérification d'email
+  useEffect(() => {
+    const token = searchParams.get('token')
+    const verified = searchParams.get('verified')
+    const alreadyVerified = searchParams.get('already_verified')
+
+    if (token && (verified || alreadyVerified)) {
+      // Authentifier l'utilisateur avec le token
+      login(token)
+      
+      // Nettoyer l'URL
+      const newSearchParams = new URLSearchParams(searchParams)
+      newSearchParams.delete('token')
+      newSearchParams.delete('verified')
+      newSearchParams.delete('already_verified')
+      setSearchParams(newSearchParams, { replace: true })
+      
+      // Afficher un message de succès
+      if (verified) {
+        // Vous pouvez ajouter une notification ici
+        console.log('Email vérifié avec succès!')
+      } else if (alreadyVerified) {
+        console.log('Email déjà vérifié!')
+      }
     }
-  ]
+  }, [searchParams, login, setSearchParams])
+
+  const mapProduct = useCallback((p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category?.slug,
+    price: p.price,
+    salePrice: p.sale_price,
+    image: p.image_url || p.image,
+    description: p.description,
+    rating: p.rating,
+    reviews: p.reviews_count,
+    inStock: p.in_stock,
+    isNew: p.is_new,
+    freeShipping: p.free_shipping,
+    sales: p.sales
+  }), [])
+
+  // Fetch categories & products for home sections
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const [catRes, prodRes] = await Promise.all([
+          api.categories.getAll(),
+          api.products.getAll({ per_page: 48 })
+        ])
+        if (cancelled) return
+        const cats = catRes.data?.data || []
+        const prodsRaw = prodRes.data?.data || prodRes.data?.data?.data || prodRes.data?.data || [] // handle paginator shape
+        // If paginator: prodRes.data.data is array & prodRes.data.meta exists
+        const rawList = Array.isArray(prodsRaw) ? prodsRaw : []
+        const mapped = rawList.map(mapProduct)
+        setCategories(cats)
+        setProducts(mapped)
+        // Featured: top by sales then by isNew fallback
+        const featured = [...mapped].sort((a,b) => (b.sales||0) - (a.sales||0)).slice(0,12)
+        setFeaturedProducts(featured)
+        // Offers: one discount collection & one new arrivals if available
+        const discounted = mapped.filter(p => p.salePrice && p.salePrice < p.price).slice(0,8)
+        const newArrivals = mapped.filter(p => p.isNew).slice(0,8)
+        const offersData = []
+        if (discounted.length) {
+          offersData.push({
+            id: 'discount',
+            title: 'Offres Promotionnelles',
+            subtitle: `Jusqu'à -${Math.min(50, Math.max(10, ...discounted.map(d => Math.round(((d.price - d.salePrice)/d.price)*100))))}% sur une sélection`,
+            description: 'Profitez de réductions limitées sur des produits populaires.',
+            products: discounted,
+            badge: 'Promo',
+            bgGradient: 'from-red-500 to-pink-600'
+          })
+        }
+        if (newArrivals.length) {
+          offersData.push({
+            id: 'new',
+            title: 'Nouvelles Arrivées',
+            subtitle: `${newArrivals.length} nouveautés à découvrir`,
+            description: 'Les derniers produits ajoutés à notre catalogue.',
+            products: newArrivals,
+            badge: 'Nouveau',
+            bgGradient: 'from-blue-600 to-purple-600'
+          })
+        }
+        setOffers(offersData)
+      } catch (e) {
+        console.error(e)
+        if (!cancelled) setError('Impossible de charger les données')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [mapProduct])
 
   // Gestion du panier
   const handleAddToCart = (product) => {
@@ -225,13 +219,23 @@ const Home = () => {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/register"
-                  className="group inline-flex items-center justify-center px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform"
-                >
-                  Commencer maintenant
-                  <ArrowRightIcon className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                {!isAuthenticated ? (
+                  <Link
+                    to="/register"
+                    className="group inline-flex items-center justify-center px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform"
+                  >
+                    Commencer maintenant
+                    <ArrowRightIcon className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                ) : (
+                  <Link
+                    to="/products"
+                    className="group inline-flex items-center justify-center px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform"
+                  >
+                    Parcourir les produits
+                    <ArrowRightIcon className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                )}
                 <Link
                   to="/contact"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/20 hover:border-white/40 text-white font-semibold rounded-xl transition-all duration-200 hover:bg-white/10"
@@ -317,11 +321,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Section des catégories en vedette */}
-      <FeaturedCategories />
+  {/* Section des catégories en vedette */}
+  <FeaturedCategories categories={categories} loading={loading} error={error} />
 
       {/* Section des offres spéciales */}
-      <SpecialOffers />
+      <SpecialOffers offers={offers} loading={loading} error={error} />
 
       {/* Section des produits en vedette */}
       <ProductSection
@@ -347,19 +351,23 @@ const Home = () => {
             Rejoignez des milliers de clients satisfaits et découvrez une nouvelle façon de faire du shopping.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="group inline-flex items-center justify-center px-8 py-4 bg-orange-500 hover:bg-orange-500/90 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform"
-            >
-              Créer un compte gratuit
-              <ArrowRightIcon className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/20 hover:border-white/40 text-white font-semibold rounded-xl transition-all duration-200 hover:bg-white/10"
-            >
-              Se connecter
-            </Link>
+            {!isAuthenticated && (
+              <>
+                <Link
+                  to="/register"
+                  className="group inline-flex items-center justify-center px-8 py-4 bg-orange-500 hover:bg-orange-500/90 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform"
+                >
+                  Créer un compte gratuit
+                  <ArrowRightIcon className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/20 hover:border-white/40 text-white font-semibold rounded-xl transition-all duration-200 hover:bg-white/10"
+                >
+                  Se connecter
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

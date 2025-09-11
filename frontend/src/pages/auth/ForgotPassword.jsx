@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { api } from '../../api/client'
 import { Link } from 'react-router-dom'
 import { ArrowLeftIcon, ArrowRightIcon } from '../../components/icons/CommonIcons'
 
@@ -17,20 +18,16 @@ function ForgotPassword() {
         setMessage('')
 
         try {
-            // TODO: Remplacer par l'appel API réel vers Laravel
-            const response = await fetch('/api/forgot-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email })
-            })
-
-            if (!response.ok) {
-                throw new Error('Erreur lors de l\'envoi de l\'email')
+            const response = await api.auth.forgotPassword(email)
+            
+            // La réponse de l'API contient un champ 'message'
+            if (response.data && response.data.message) {
+                setMessage('Un email de réinitialisation a été envoyé à votre adresse email.')
+            } else if (response.data && response.data.error) {
+                setError(response.data.error)
+            } else {
+                setMessage('Un email de réinitialisation a été envoyé à votre adresse email.')
             }
-
-            setMessage('Un email de réinitialisation a été envoyé à votre adresse email.')
         } catch (error) {
             setError('Une erreur est survenue. Veuillez réessayer.')
         } finally {

@@ -1,47 +1,56 @@
 import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useToast } from '../context/ToastContext'
-import { 
+import { api } from '../api/client'
+import {
   UserIcon,
   MailIcon,
   PhoneIcon,
   EyeIcon,
   EyeOffIcon,
   CheckIcon,
-  XIcon,
   ShoppingCartIcon,
   HeartIcon,
   TruckIcon
 } from '../components/icons'
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth()
+  const navigate = useNavigate()
+  const { user, updateProfile, updatePassword, refreshUser } = useAuth()
   const { cart, wishlist } = useCart()
   const { success, error } = useToast()
-  
+
   const [isEditing, setIsEditing] = useState(false)
   const [showPasswordSection, setShowPasswordSection] = useState(false)
-  const [loading, setLoading] = useState(false)
-  
+  const [loading, setLoading] = useState(false) // profile saving
+  const [pwdLoading, setPwdLoading] = useState(false)
+  const [passwordErrors, setPasswordErrors] = useState([])
+  const [ordersCount, setOrdersCount] = useState(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState(null)
+
   // Données du formulaire
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address: user?.address || '',
     city: user?.city || '',
+    quartier: user?.quartier || '',
     postalCode: user?.postalCode || '',
     country: user?.country || 'Cameroun'
   })
-  
+
   // Données pour changer le mot de passe
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
-  
+
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -54,12 +63,44 @@ const Profile = () => {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.address || '',
         city: user.city || '',
+        quartier: user.quartier || '',
         postalCode: user.postalCode || '',
         country: user.country || 'Cameroun'
       })
     }
+  }, [user])
+
+  // Chargement explicite des données profil détaillées (assure qu'on ne reste pas sur des valeurs hardcodées)
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return
+      setProfileLoading(true)
+      setProfileError(null)
+      try {
+        const res = await api.profile.get()
+        const data = res.data?.user || res.data || {}
+        setFormData(prev => ({
+          ...prev,
+          name: data.name ?? prev.name,
+          email: data.email ?? prev.email,
+          phone: data.phone ?? prev.phone,
+          city: data.city ?? prev.city,
+          quartier: data.quartier ?? prev.quartier,
+          postalCode: data.postalCode ?? data.postal_code ?? prev.postalCode,
+          country: data.country ?? prev.country
+        }))
+        if (data.avatar_url || data.avatar) {
+          const raw = data.avatar_url || data.avatar
+          setAvatarUrl(resolveAvatarUrl(raw))
+        }
+      } catch (e) {
+        setProfileError('Impossible de charger le profil')
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+    fetchProfile()
   }, [user])
 
   const handleInputChange = (e) => {
@@ -81,16 +122,14 @@ const Profile = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault()
     setLoading(true)
-    
     try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Ici vous feriez un appel API réel
-      // await updateProfile(formData)
-      
-      success('Profil mis à jour avec succès')
-      setIsEditing(false)
+      const result = await updateProfile(formData)
+      if (!result.success) {
+        error('Erreur de validation du profil')
+      } else {
+        success('Profil mis à jour avec succès')
+        setIsEditing(false)
+      }
     } catch (err) {
       error('Erreur lors de la mise à jour du profil')
     } finally {
@@ -98,36 +137,89 @@ const Profile = () => {
     }
   }
 
+  const passwordStrength = (() => {
+    const p = passwordData.newPassword
+    if (!p) return 0
+    let score = 0
+    if (p.length >= 6) score++
+    if (p.length >= 10) score++
+    if (/[A-Z]/.test(p)) score++
+    if (/[0-9]/.test(p)) score++
+    if (/[^A-Za-z0-9]/.test(p)) score++
+    return Math.min(score, 5)
+  })()
+
+  const validatePasswordForm = () => {
+    const errs = []
+    if (!passwordData.currentPassword.trim()) errs.push('Mot de passe actuel requis')
+    if (passwordData.newPassword.length < 6) errs.push('Au moins 6 caractères')
+    if (passwordData.newPassword !== passwordData.confirmPassword) errs.push('Confirmation différente')
+    setPasswordErrors(errs)
+    return errs.length === 0
+  }
+
   const handleChangePassword = async (e) => {
     e.preventDefault()
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      error('Les mots de passe ne correspondent pas')
-      return
-    }
-    
-    if (passwordData.newPassword.length < 6) {
-      error('Le mot de passe doit contenir au moins 6 caractères')
-      return
-    }
-    
-    setLoading(true)
-    
+    if (!validatePasswordForm()) return
+    setPwdLoading(true)
+    setPasswordErrors([])
     try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      success('Mot de passe modifié avec succès')
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+      const result = await updatePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
       })
-      setShowPasswordSection(false)
+      if (!result.success) {
+        const backendErrors = result.errors ? Object.values(result.errors).flat() : []
+        if (backendErrors.length) setPasswordErrors(backendErrors)
+        error('Échec du changement de mot de passe')
+      } else {
+        success('Mot de passe modifié')
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+        setShowPasswordSection(false)
+      }
     } catch (err) {
-      error('Erreur lors du changement de mot de passe')
+      error('Erreur réseau mot de passe')
     } finally {
-      setLoading(false)
+      setPwdLoading(false)
+    }
+  }
+
+  // Charger le nombre de commandes
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return
+      try {
+        const res = await api.orders.getAll()
+        const items = res.data?.data || res.data || []
+        setOrdersCount(Array.isArray(items) ? items.length : (items.total ?? items.count ?? 0))
+      } catch (e) {
+        setOrdersCount(0)
+      }
+    }
+    fetchOrders()
+  }, [user])
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      error('Aucun fichier sélectionné')
+      return
+    }
+    setAvatarUploading(true)
+    try {
+      const res = await api.uploads.uploadAvatar(file)
+      const raw = res.data?.url || res.data?.avatar_url || res.data?.path
+      if (raw) {
+        setAvatarUrl(resolveAvatarUrl(raw))
+      }
+  await refreshUser()
+      success('Avatar mis à jour')
+    } catch (err) {
+      const backendMsg = err?.response?.data?.message
+      error(backendMsg || 'Erreur lors du téléversement de l\'avatar')
+    } finally {
+      setAvatarUploading(false)
     }
   }
 
@@ -153,11 +245,27 @@ const Profile = () => {
     },
     {
       label: 'Commandes totales',
-      value: 12, // Valeur simulée
+      value: ordersCount === null ? '...' : ordersCount,
       icon: TruckIcon,
       color: 'text-green-600'
     }
   ]
+
+  function resolveAvatarUrl(raw) {
+    if (!raw) return null
+    // Si déjà absolu (http/https/data)
+    if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) return raw
+    // Laravel Storage::url() retourne typiquement /storage/... => préfixer origin
+    if (raw.startsWith('/')) return window.location.origin + raw
+    // Cas path "public/avatars/xyz" => retirer public/ et préfixer /storage
+    if (raw.startsWith('public/')) {
+      const relative = raw.replace(/^public\//, '')
+      return window.location.origin + '/storage/' + relative
+    }
+    // Cas avatars/xyz => supposer stocké sous /storage/avatars
+    if (raw.startsWith('avatars/')) return window.location.origin + '/storage/' + raw
+    return window.location.origin + '/' + raw
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -186,7 +294,7 @@ const Profile = () => {
                   {!isEditing ? (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-[#1a237e] hover:text-blue-800 font-medium"
+                      className="text-[#1a237e] hover:text-blue-800 font-medium cursor-pointer"
                     >
                       Modifier
                     </button>
@@ -195,12 +303,12 @@ const Profile = () => {
                       <button
                         onClick={() => {
                           setIsEditing(false)
-                          setFormData({
+                            setFormData({
                             name: user?.name || '',
                             email: user?.email || '',
                             phone: user?.phone || '',
-                            address: user?.address || '',
                             city: user?.city || '',
+                            quartier: user?.quartier || '',
                             postalCode: user?.postalCode || '',
                             country: user?.country || 'Cameroun'
                           })
@@ -235,9 +343,8 @@ const Profile = () => {
                           value={formData.name}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                            !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                          }`}
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''
+                            }`}
                           placeholder="Votre nom complet"
                         />
                         <UserIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -255,9 +362,8 @@ const Profile = () => {
                           value={formData.email}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                            !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                          }`}
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''
+                            }`}
                           placeholder="votre@email.com"
                         />
                         <MailIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -275,9 +381,8 @@ const Profile = () => {
                           value={formData.phone}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                            !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                          }`}
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''
+                            }`}
                           placeholder="+237 6XX XXX XXX"
                         />
                         <PhoneIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -293,9 +398,8 @@ const Profile = () => {
                         value={formData.country}
                         onChange={handleInputChange}
                         disabled={!isEditing}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                          !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                        }`}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''
+                          }`}
                       >
                         <option value="Cameroun">Cameroun</option>
                         <option value="France">France</option>
@@ -306,41 +410,34 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Adresse
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                        !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                      }`}
-                      placeholder="Votre adresse complète"
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Ville
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Quartier</label>
+                      <input
+                        type="text"
+                        name="quartier"
+                        value={formData.quartier}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''}`}
+                        placeholder="Bonapriso, Bastos..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
                       <input
                         type="text"
                         name="city"
                         value={formData.city}
                         onChange={handleInputChange}
                         disabled={!isEditing}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                          !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                        }`}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''}`}
                         placeholder="Yaoundé, Douala..."
                       />
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Code postal
@@ -351,9 +448,8 @@ const Profile = () => {
                         value={formData.postalCode}
                         onChange={handleInputChange}
                         disabled={!isEditing}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${
-                          !isEditing ? 'bg-gray-50 text-gray-500' : ''
-                        }`}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent ${!isEditing ? 'bg-gray-50 text-gray-500' : ''
+                          }`}
                         placeholder="Code postal"
                       />
                     </div>
@@ -371,7 +467,7 @@ const Profile = () => {
                   </h2>
                   <button
                     onClick={() => setShowPasswordSection(!showPasswordSection)}
-                    className="text-[#1a237e] hover:text-blue-800 font-medium"
+                    className="text-[#1a237e] hover:text-blue-800 font-medium cursor-pointer"
                   >
                     {showPasswordSection ? 'Masquer' : 'Changer le mot de passe'}
                   </button>
@@ -466,13 +562,31 @@ const Profile = () => {
                       </div>
                     </div>
 
+                    {passwordErrors.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-md p-3 text-xs text-red-600 space-y-1">
+                        {passwordErrors.map((pe,i) => <div key={i}>• {pe}</div>)}
+                      </div>
+                    )}
+
+                    {passwordData.newPassword && (
+                      <div className="pt-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] text-gray-500">Robustesse</span>
+                          <span className="text-[11px] text-gray-500">{passwordStrength}/5</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`h-full transition-all duration-300 ${passwordStrength <=2 ? 'bg-red-500' : passwordStrength===3 ? 'bg-yellow-500' : 'bg-green-600'}`} style={{ width: `${(passwordStrength/5)*100}%` }}></div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex space-x-3 pt-4">
                       <button
                         type="submit"
-                        disabled={loading}
+                        disabled={pwdLoading || passwordErrors.length>0}
                         className="bg-[#1a237e] text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition-colors duration-200 disabled:opacity-50"
                       >
-                        {loading ? 'Modification...' : 'Modifier le mot de passe'}
+                        {pwdLoading ? 'Modification...' : 'Modifier le mot de passe'}
                       </button>
                       <button
                         type="button"
@@ -483,6 +597,7 @@ const Profile = () => {
                             newPassword: '',
                             confirmPassword: ''
                           })
+                          setPasswordErrors([])
                         }}
                         className="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                       >
@@ -499,10 +614,20 @@ const Profile = () => {
           <div className="space-y-6">
             {/* Avatar et statut */}
             <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-              <div className="w-24 h-24 mx-auto bg-[#1a237e] rounded-full flex items-center justify-center mb-4">
-                <span className="text-3xl font-bold text-white">
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </span>
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                <div className="w-24 h-24 bg-[#1a237e] rounded-full flex items-center justify-center overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-bold text-white">
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 bg-white border border-gray-300 rounded-full p-1 cursor-pointer shadow-sm hover:bg-gray-50 h-8 w-8 flex items-center justify-center">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  <span className="text-xs text-[#1a237e] font-semibold">{avatarUploading ? '...' : '📸'}</span>
+                </label>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
                 {user?.name || 'Utilisateur'}
@@ -510,10 +635,25 @@ const Profile = () => {
               <p className="text-gray-600 text-sm mb-4">
                 {user?.email}
               </p>
-              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <CheckIcon className="h-4 w-4 mr-1" />
-                Compte vérifié
-              </div>
+              {profileLoading && (
+                <p className="text-xs text-gray-400 mb-2">Chargement des détails...</p>
+              )}
+              {profileError && (
+                <p className="text-xs text-red-500 mb-2">{profileError}</p>
+              )}
+              {user && (
+                user.email_verified_at ? (
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    <CheckIcon className="h-4 w-4 mr-1" />
+                    Email vérifié
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    <span className="h-2 w-2 rounded-full bg-yellow-500 mr-2"></span>
+                    Email non vérifié
+                  </div>
+                )
+              )}
             </div>
 
             {/* Statistiques */}
@@ -545,19 +685,31 @@ const Profile = () => {
                 Actions rapides
               </h3>
               <div className="space-y-3">
-                <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                <button
+                  onClick={() => navigate('/favorites')}
+                  className="cursor-pointer w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200"
+                  aria-label="Voir mes favoris"
+                >
                   <div className="flex items-center space-x-3">
                     <HeartIcon className="h-5 w-5 text-red-600" />
                     <span className="text-gray-700">Voir mes favoris</span>
                   </div>
                 </button>
-                <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                <button
+                  onClick={() => navigate('/orders')}
+                  className="cursor-pointer w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200"
+                  aria-label="Mes commandes"
+                >
                   <div className="flex items-center space-x-3">
                     <TruckIcon className="h-5 w-5 text-green-600" />
                     <span className="text-gray-700">Mes commandes</span>
                   </div>
                 </button>
-                <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                <button
+                  onClick={() => navigate('/cart')}
+                  className="cursor-pointer w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200"
+                  aria-label="Mon panier"
+                >
                   <div className="flex items-center space-x-3">
                     <ShoppingCartIcon className="h-5 w-5 text-blue-600" />
                     <span className="text-gray-700">Mon panier</span>

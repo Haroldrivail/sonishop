@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useNotification } from '../context/NotificationContext'
+import { useToast } from '../context/ToastContext'
+import { api } from '../api/client'
 import { 
   ChevronLeftIcon,
   HeartIcon, 
@@ -18,78 +20,68 @@ import {
 const ProductDetail = () => {
   const { id } = useParams()
   const { addToCart, toggleWishlist, isInWishlist } = useCart()
-  const { showCartNotification, showSuccess, showError } = useNotification()
+  const { showCartNotification, showSuccess, showError } = useNotification() // legacy notifications (cart special)
+  const { showToast } = useToast()
   const [product, setProduct] = useState(null)
+  const [relatedProducts, setRelatedProducts] = useState([])
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [loading, setLoading] = useState(true)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [error, setError] = useState(null)
 
-  // Données simulées d'un produit
-  const mockProduct = {
-    id: 1,
-    name: 'iPhone 15 Pro Max',
-    category: 'Smartphones',
-    price: 850000,
-    originalPrice: 915000,
-    discount: 7,
-    images: [
-      'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600',
-      'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600',
-      'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=600',
-      'https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=600'
-    ],
-    rating: 4.8,
-    reviews: 324,
-    inStock: true,
-    stockCount: 12,
-    isNew: true,
-    badge: 'Bestseller',
-    description: "L'iPhone 15 Pro Max redéfinit l'innovation mobile avec son design en titane, son écran Super Retina XDR de 6,7 pouces et sa puce A17 Pro révolutionnaire. Capturez des moments extraordinaires avec son système de caméra pro avancé et profitez d'une autonomie exceptionnelle.",
-    features: [
-      'Écran Super Retina XDR 6,7 pouces',
-      'Puce A17 Pro avec GPU 6 cœurs',
-      'Système de caméra Pro 48 MP',
-      'Design en titane de qualité aérospatiale',
-      'USB-C avec USB 3',
-      'Face ID',
-      'Résistance à l\'eau IP68',
-      'MagSafe et charge sans fil Qi'
-    ],
-    specifications: {
-      'Écran': 'Super Retina XDR OLED 6,7" (2796 × 1290)',
-      'Processeur': 'Puce A17 Pro',
-      'Stockage': '256 GB',
-      'Caméra': '48 MP principale + 12 MP ultra grand-angle + 12 MP téléobjectif',
-      'Batterie': 'Jusqu\'à 29h de lecture vidéo',
-      'Connectivité': '5G, Wi-Fi 6E, Bluetooth 5.3',
-      'Dimensions': '159,9 × 76,7 × 8,25 mm',
-      'Poids': '221 g'
-    },
-    relatedProducts: [
-      {
-        id: 2,
-        name: 'AirPods Pro 2',
-        price: 163000,
-        image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=300'
-      },
-      {
-        id: 3,
-        name: 'MagSafe Charger',
-        price: 25500,
-        image: 'https://images.unsplash.com/photo-1609205807107-e3b433c49e11?w=300'
-      }
-    ]
-  }
+  // Fallback minimal: aucune donnée persistante hardcodée
+  const buildMappedProduct = (p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category?.slug || p.category?.name || p.category_id,
+    price: p.price,
+    originalPrice: p.sale_price ? p.price : null,
+    discount: p.sale_price ? Math.round(((p.price - p.sale_price)/p.price)*100) : null,
+    images: p.images?.length ? p.images : [p.image_url || p.image].filter(Boolean),
+    rating: p.rating,
+    reviews: p.reviews_count,
+    inStock: p.in_stock,
+    stockCount: p.stock_count ?? 1,
+    isNew: p.is_new,
+    badge: p.is_new ? 'Nouveau' : null,
+    description: p.description,
+    features: [],
+    specifications: {},
+    relatedProducts: [],
+  })
 
+  // Charger les détails du produit depuis l'API
   useEffect(() => {
-    // Simulation du chargement
-    setTimeout(() => {
-      setProduct(mockProduct)
-      setLoading(false)
-    }, 1000)
-  }, [id])
+    const fetchProductDetails = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Obtenir les détails du produit
+        const response = await api.products.getById(id);
+        if (response.data) {
+          const raw = response.data.data || response.data
+          const mapped = buildMappedProduct(raw)
+          setProduct(mapped)
+          // Produits associés: placeholder vide jusqu'à endpoint dédié
+          setRelatedProducts([])
+        } else throw new Error('Données du produit invalides')
+      } catch (err) {
+        console.error('Erreur lors du chargement des détails du produit:', err);
+        setError('Impossible de charger les détails du produit.');
+        setProduct(null);
+        setRelatedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProductDetails();
+    }
+  }, [id]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -115,45 +107,80 @@ const ProductDetail = () => {
 
   const handleQuantityChange = (change) => {
     const newQuantity = quantity + change
-    if (newQuantity >= 1 && newQuantity <= product.stockCount) {
+  if (product && newQuantity >= 1) {
       setQuantity(newQuantity)
     }
   }
 
   const handleAddToCart = async () => {
-    if (!product.inStock || isAddingToCart) return
+  if (!product?.inStock || isAddingToCart) return
     
     setIsAddingToCart(true)
     
     try {
-      // Simulation d'un délai pour montrer l'état de chargement
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Ajouter le produit au panier avec la quantité sélectionnée
-      const success = addToCart(product, quantity)
-      
-      if (success) {
-        // Afficher la notification de succès avec le produit
-        showCartNotification(product, quantity)
-        
-        // Optionnel: Réinitialiser la quantité à 1 après ajout
-        // setQuantity(1)
+      // Si l'API est disponible, utiliser la méthode du service
+      if (api.cart && api.cart.addItem) {
+        try {
+          await api.cart.addItem(product.id, quantity);
+          showToast({ type: 'success', title: 'Ajouté au panier', description: `${quantity} x ${product.name}` })
+        } catch (apiError) {
+          console.error('API error:', apiError);
+          // En cas d'erreur API, utiliser la méthode locale
+          const success = addToCart(product, quantity);
+          if (success) {
+            showToast({ type: 'success', title: 'Ajouté au panier (local)', description: `${quantity} x ${product.name}` })
+          }
+        }
+      } else {
+        // Méthode locale de secours
+        const success = addToCart(product, quantity);
+        if (success) {
+          showToast({ type: 'success', title: 'Ajouté au panier', description: `${quantity} x ${product.name}` })
+        }
       }
     } catch (error) {
       console.error('Erreur lors de l\'ajout au panier:', error)
-      showError('Erreur lors de l\'ajout au panier')
+      showToast({ type: 'error', title: 'Erreur panier', description: 'Ajout impossible' })
     } finally {
       setIsAddingToCart(false)
     }
   }
 
-  const handleToggleFavorite = () => {
-    const wasAdded = toggleWishlist(product)
-    if (wasAdded) {
-      showSuccess('Produit ajouté aux favoris')
+  const handleToggleFavorite = async () => {
+    if (!product) return
+    const res = await toggleWishlist(product)
+    if (res?.attached) {
+      showToast({ type: 'info', title: 'Favori ajouté', description: product.name })
     } else {
-      showSuccess('Produit retiré des favoris')
+      showToast({ type: 'info', title: 'Favori retiré', description: product.name })
     }
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-8 rounded-lg text-center">
+            <h2 className="text-2xl font-bold mb-4">Erreur</h2>
+            <p className="mb-4">{error}</p>
+            <div className="flex justify-center gap-4">
+              <button 
+                onClick={() => window.history.back()} 
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              >
+                Retour
+              </button>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -349,14 +376,14 @@ const ProductDetail = () => {
                 <button
                   onClick={handleAddToCart}
                   disabled={!product.inStock || isAddingToCart}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
+                  className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform active:scale-[0.98] hover:cursor-pointer mb-2"
                 >
                   <ShoppingCartIcon className="w-5 h-5" />
                   {isAddingToCart ? 'Ajout en cours...' : 'Ajouter au panier'}
                 </button>
                 <button
                   onClick={handleToggleFavorite}
-                  className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <HeartIcon
                     className={`w-6 h-6 ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400'}`}

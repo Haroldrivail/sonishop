@@ -14,6 +14,7 @@ import {
     EyeOffIcon
 } from '../components/icons/index'
 import { useCart } from '../context/CartContext'
+import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useNotification } from '../context/NotificationContext'
 import { useAuth } from '../context/AuthContext'
@@ -21,15 +22,22 @@ import { useAuth } from '../context/AuthContext'
 const Checkout = () => {
     const navigate = useNavigate()
     const { cart, clearCart, cartTotal } = useCart()
-    const { showToast } = useToast()
-    const { showSuccess, showError } = useNotification()
+    // Unification des notifications: on utilise uniquement useToast (success/error)
+    const { success, error } = useToast()
     const { user, isAuthenticated, login, register } = useAuth()
 
     // États principaux
     const [showConfirmDialog, setShowConfirmDialog] = useState(false)
     const [orderNumber, setOrderNumber] = useState('')
     const [isProcessing, setIsProcessing] = useState(false)
-    
+    const [step, setStep] = useState(1) // 1: livraison, 2: révision/paiement, 3: confirmation finale (affichage)
+    const [isGuestCheckout, setIsGuestCheckout] = useState(true)
+    const [appliedPromo, setAppliedPromo] = useState(null)
+    const [promoCode, setPromoCode] = useState('')
+    const [loading, setLoading] = useState(false) // pour progression paiement
+    const [finalizing, setFinalizing] = useState(false)
+    const [finalOrderSummary, setFinalOrderSummary] = useState(null)
+
     // États pour l'authentification
     const [showAuthModal, setShowAuthModal] = useState(false)
     const [authMode, setAuthMode] = useState('login') // 'login' ou 'register'
@@ -41,8 +49,8 @@ const Checkout = () => {
         lastName: '',
         email: '',
         phone: '',
-        address: '',
         city: '',
+        quartier: '',
         postalCode: '',
         country: 'Cameroun'
     })
@@ -59,8 +67,8 @@ const Checkout = () => {
                 lastName: user.lastName || user.name?.split(' ')[1] || '',
                 email: user.email || '',
                 phone: user.phone || '',
-                address: user.address || '',
                 city: user.city || '',
+                quartier: user.quartier || '',
                 postalCode: user.postalCode || '',
                 country: user.country || 'Cameroun'
             }
@@ -99,13 +107,35 @@ const Checkout = () => {
         pickup: { price: 0, time: 'Immédiate', label: 'Retrait en magasin' }
     }
     const shipping = deliveryOptions[deliveryOption].price
-    const total = subtotal + shipping
+    // Calcul de la réduction promo (simulation locale, à remplacer par API /promo/validate)
+    const promoDiscount = appliedPromo
+        ? appliedPromo.type === 'percentage'
+            ? Math.round(subtotal * (appliedPromo.discount / 100))
+            : appliedPromo.discount * 655 // conversion éventuelle (placeholder) si valeur en EUR/USD
+        : 0
+    const total = subtotal + shipping - promoDiscount
+
+    const applyPromoCode = () => {
+        const raw = promoCode.trim().toUpperCase()
+        if (!raw) { error('Entrez un code promo'); return }
+        const validCodes = {
+            'WELCOME10': { discount: 10, type: 'percentage', label: '-10%' },
+            'SAVE50': { discount: 50, type: 'fixed', label: '-50 (≈FCFA*655)' }
+        }
+        if (appliedPromo && appliedPromo.code === raw) { error('Code déjà appliqué'); setPromoCode(''); return }
+        const found = validCodes[raw]
+        if (!found) { error('Code invalide'); setPromoCode(''); return }
+        setAppliedPromo({ code: raw, ...found })
+        if (found.type === 'percentage') success(`Code ${raw} appliqué: -${found.discount}%`)
+        else success(`Code ${raw} appliqué`)
+        setPromoCode('')
+    }
 
     const handleShippingSubmit = (e) => {
         e.preventDefault()
         console.log('Formulaire de livraison soumis')
         console.log('Informations de livraison:', shippingInfo)
-        
+
         if (validateShippingInfo()) {
             console.log('Validation réussie, passage à l\'étape 2')
             setStep(2)
@@ -115,9 +145,9 @@ const Checkout = () => {
     }
 
     const validateShippingInfo = () => {
-        const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city']
+    const required = ['firstName', 'lastName', 'email', 'phone', 'city', 'quartier']
         const missing = []
-        
+
         for (let field of required) {
             if (!shippingInfo[field].trim()) {
                 const fieldNames = {
@@ -125,30 +155,30 @@ const Checkout = () => {
                     lastName: 'Nom',
                     email: 'Email',
                     phone: 'Téléphone',
-                    address: 'Adresse',
+                    quartier: 'Quartier',
                     city: 'Ville'
                 }
                 missing.push(fieldNames[field])
             }
         }
-        
+
         if (missing.length > 0) {
-            showToast(`Champs requis manquants: ${missing.join(', ')}`, 'error')
+            error(`Champs requis manquants: ${missing.join(', ')}`)
             console.log('Champs manquants:', missing, 'État actuel:', shippingInfo)
             return false
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingInfo.email)) {
-            showToast('Email invalide', 'error')
+            error('Email invalide')
             return false
         }
-        
+
         // Validation spécifique pour les utilisateurs invités
         if (!isAuthenticated && isGuestCheckout) {
-            showToast('Informations de livraison confirmées pour l\'invité', 'success')
+            success('Informations de livraison confirmées (invité)')
         } else if (isAuthenticated) {
-            showToast('Informations de livraison confirmées', 'success')
+            success('Informations de livraison confirmées')
         }
-        
+
         return true
     }
 
@@ -157,13 +187,13 @@ const Checkout = () => {
             const required = ['cardNumber', 'expiryDate', 'cvv', 'cardName']
             for (let field of required) {
                 if (!paymentInfo[field].trim()) {
-                    showToast(`Le champ ${field} est requis`, 'error')
+                    error(`Le champ ${field} est requis`)
                     return false
                 }
             }
         } else if (paymentInfo.method === 'mobile') {
             if (!paymentInfo.mobileNumber.trim()) {
-                showToast('Numéro de téléphone requis', 'error')
+                error('Numéro de téléphone requis')
                 return false
             }
         }
@@ -175,15 +205,15 @@ const Checkout = () => {
         if (!validatePaymentInfo()) return
 
         setLoading(true)
-        
+
         // Simulation de la validation du paiement
         try {
             await new Promise(resolve => setTimeout(resolve, 1500))
             setStep(3) // Passer à l'étape de révision/finalisation
-            showSuccess('Informations de paiement validées ✓')
+            success('Informations de paiement validées ✓')
         } catch (error) {
             console.error('Erreur lors de la validation du paiement:', error)
-            showError('Erreur lors de la validation du paiement')
+            error('Erreur lors de la validation du paiement')
         } finally {
             setLoading(false)
         }
@@ -191,47 +221,76 @@ const Checkout = () => {
 
     const handleFinalizeOrder = async () => {
         setFinalizing(true)
-        
         try {
-            // Simulation du traitement final de la commande
-            await new Promise(resolve => setTimeout(resolve, 2500))
-            
-            // Générer un numéro de commande
-            const newOrderNumber = `SN${Date.now().toString().slice(-6)}`
-            setOrderNumber(newOrderNumber)
-            
-            // Sauvegarder la commande (simulation)
-            const orderData = {
-                orderNumber: newOrderNumber,
-                items: cart,
-                shippingInfo,
-                paymentInfo: {
-                    method: paymentInfo.method,
-                    // Ne pas sauvegarder les données sensibles
+            // Construire les items conformes backend
+            const orderPayload = {
+                items: cart.map(it => ({ product_id: it.id || it.productId, quantity: it.quantity })),
+                amounts: {
+                    subtotal,
+                    shipping: shipping,
+                    discount: promoDiscount,
+                    total: total
                 },
-                deliveryOption,
-                subtotal,
-                shipping,
-                total,
-                date: new Date().toISOString(),
-                status: 'confirmed',
-                estimatedDelivery: getEstimatedDeliveryDate()
+                shipping_info: {
+                    first_name: shippingInfo.firstName,
+                    last_name: shippingInfo.lastName,
+                    email: shippingInfo.email,
+                    phone: shippingInfo.phone,
+                    quartier: shippingInfo.quartier,
+                    city: shippingInfo.city,
+                    postal_code: shippingInfo.postalCode,
+                    country: shippingInfo.country,
+                    delivery_option: deliveryOption
+                },
+                promo_code: appliedPromo?.code || null,
+                payment_method: paymentInfo.method,
             }
-            
-            // Sauvegarder dans localStorage (en production, envoyer au serveur)
+
+            let createdOrder = null
+            let apiSucceeded = false
+            try {
+                const res = await api.orders.create(orderPayload)
+                createdOrder = res.data?.data
+                apiSucceeded = true
+            } catch (apiErr) {
+                // Fallback invité (si backend exige auth) : stocker localement
+                console.warn('API order create failed, fallback local', apiErr)
+                const fallbackNumber = `SN${Date.now().toString().slice(-6)}`
+                createdOrder = {
+                    number: fallbackNumber,
+                    status: 'pending',
+                    subtotal,
+                    shipping_amount: shipping,
+                    discount: promoDiscount,
+                    total: subtotal + shipping - promoDiscount,
+                    items: cart.map(it => ({ product_id: it.id, name: it.name, price: it.salePrice || it.price, quantity: it.quantity, total: (it.salePrice || it.price) * it.quantity })),
+                    localOnly: true,
+                    promo_code: appliedPromo?.code || null
+                }
+            }
+
+            setOrderNumber(createdOrder.number || createdOrder.orderNumber)
+            // Snapshot order summary BEFORE clearing cart
+            setFinalOrderSummary({
+                number: createdOrder.number || createdOrder.orderNumber,
+                subtotal: subtotal,
+                shipping: shipping,
+                discount: promoDiscount,
+                total: subtotal + shipping - promoDiscount,
+                itemsCount: cart.reduce((s, i) => s + i.quantity, 0)
+            })
+            // Persist local copy for history
             const existingOrders = JSON.parse(localStorage.getItem('sonishop_orders') || '[]')
-            existingOrders.push(orderData)
+            existingOrders.push({ ...createdOrder, estimatedDelivery: getEstimatedDeliveryDate() })
             localStorage.setItem('sonishop_orders', JSON.stringify(existingOrders))
-            
-            setStep(4) // Passer à la confirmation finale
+
+            // Clear cart after snapshot
             clearCart()
-            showSuccess('Commande finalisée avec succès ! 🎉')
-            showToast('Commande confirmée ! Email de confirmation envoyé.', 'success')
-            
-        } catch (error) {
-            console.error('Erreur lors de la finalisation:', error)
-            showError('Erreur lors de la finalisation de la commande')
-            showToast('Erreur lors de la finalisation', 'error')
+            setStep(3) // show confirmation (was 4)
+            success('Commande finalisée avec succès ! 🎉')
+        } catch (err) {
+            console.error('Erreur finale commande:', err)
+            error('Erreur lors de la finalisation de la commande')
         } finally {
             setFinalizing(false)
         }
@@ -241,7 +300,7 @@ const Checkout = () => {
         const today = new Date()
         const deliveryDays = deliveryOption === 'express' ? 2 : deliveryOption === 'standard' ? 5 : 0
         if (deliveryOption === 'pickup') return 'Disponible immédiatement'
-        
+
         const deliveryDate = new Date(today)
         deliveryDate.setDate(today.getDate() + deliveryDays)
         return deliveryDate.toLocaleDateString('fr-FR', {
@@ -345,10 +404,10 @@ const Checkout = () => {
                                 <h2 className="text-lg font-semibold text-gray-900">Options de commande</h2>
                                 <UserIcon className="w-6 h-6 text-soni-orange" />
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className={`p-4 border rounded-lg cursor-pointer transition-colors ${isGuestCheckout ? 'border-soni-orange bg-soni-orange/5' : 'border-gray-200 hover:border-gray-300'}`}
-                                     onClick={() => setIsGuestCheckout(true)}>
+                                    onClick={() => setIsGuestCheckout(true)}>
                                     <div className="flex items-center mb-2">
                                         <div className={`w-4 h-4 rounded-full border-2 mr-3 ${isGuestCheckout ? 'border-soni-orange bg-soni-orange' : 'border-gray-300'}`}>
                                             {isGuestCheckout && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
@@ -359,7 +418,7 @@ const Checkout = () => {
                                 </div>
 
                                 <div className={`p-4 border rounded-lg cursor-pointer transition-colors ${!isGuestCheckout ? 'border-soni-orange bg-soni-orange/5' : 'border-gray-200 hover:border-gray-300'}`}
-                                     onClick={() => setIsGuestCheckout(false)}>
+                                    onClick={() => setIsGuestCheckout(false)}>
                                     <div className="flex items-center mb-2">
                                         <div className={`w-4 h-4 rounded-full border-2 mr-3 ${!isGuestCheckout ? 'border-soni-orange bg-soni-orange' : 'border-gray-300'}`}>
                                             {!isGuestCheckout && <div className="w-full h-full rounded-full bg-white scale-50"></div>}
@@ -375,15 +434,15 @@ const Checkout = () => {
                             {!isGuestCheckout && (
                                 <div className="mt-4 pt-4 border-t border-gray-100">
                                     <div className="flex gap-3">
-                                        <Link 
+                                        <Link
                                             to="/login"
-                                            className="flex-1 px-4 py-2 bg-soni-navy text-white rounded-lg hover:bg-soni-navy/90 transition-colors text-center font-medium"
+                                            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-500/90 transition-colors text-center font-medium"
                                         >
                                             Se connecter
                                         </Link>
-                                        <Link 
+                                        <Link
                                             to="/register"
-                                            className="flex-1 px-4 py-2 border border-soni-navy text-soni-navy rounded-lg hover:bg-soni-navy/5 transition-colors text-center font-medium"
+                                            className="flex-1 px-4 py-2 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-500/5 transition-colors text-center font-medium"
                                         >
                                             Créer un compte
                                         </Link>
@@ -411,21 +470,10 @@ const Checkout = () => {
                                             </span>
                                         )}
                                     </div>
-                                    
-                                    {isAuthenticated && (
-                                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                            <p className="text-sm text-blue-800">
-                                                <strong>Connecté en tant que:</strong> {user?.name || user?.email}
-                                            </p>
-                                            <p className="text-xs text-blue-600 mt-1">
-                                                Vos informations sont automatiquement remplies. Vous pouvez les modifier si nécessaire.
-                                            </p>
-                                        </div>
-                                    )}
-                                    
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom <span className="text-red-500">*</span></label>
                                             <input
                                                 type="text"
                                                 value={shippingInfo.firstName}
@@ -435,7 +483,7 @@ const Checkout = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Nom <span className="text-red-500">*</span></label>
                                             <input
                                                 type="text"
                                                 value={shippingInfo.lastName}
@@ -445,7 +493,7 @@ const Checkout = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
                                             <input
                                                 type="email"
                                                 value={shippingInfo.email}
@@ -455,7 +503,7 @@ const Checkout = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone <span className="text-red-500">*</span></label>
                                             <input
                                                 type="tel"
                                                 value={shippingInfo.phone}
@@ -468,10 +516,10 @@ const Checkout = () => {
                                     </div>
 
                                     <div className="mt-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Adresse complète *</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Adresse complète <span className="text-red-500">*</span></label>
                                         <textarea
-                                            value={shippingInfo.address}
-                                            onChange={(e) => updateShippingInfo('address', e.target.value)}
+                                            value={shippingInfo.quartier}
+                                            onChange={(e) => updateShippingInfo('quartier', e.target.value)}
                                             rows={3}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-orange focus:border-soni-orange outline-none"
                                             placeholder="Quartier, rue, immeuble, numéro..."
@@ -481,7 +529,7 @@ const Checkout = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Ville <span className="text-red-500">*</span></label>
                                             <input
                                                 type="text"
                                                 value={shippingInfo.city}
@@ -529,7 +577,7 @@ const Checkout = () => {
                                                     Créez un compte pour sauvegarder vos informations, suivre vos commandes et accélérer vos prochains achats.
                                                 </p>
                                                 <div className="mt-3">
-                                                    <Link 
+                                                    <Link
                                                         to="/register"
                                                         className="text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
                                                     >
@@ -544,7 +592,7 @@ const Checkout = () => {
                                 {/* Options de livraison */}
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                     <h2 className="text-lg font-semibold text-gray-900 mb-4">Mode de livraison</h2>
-                                    
+
                                     <div className="space-y-3">
                                         {Object.entries(deliveryOptions).map(([key, option]) => (
                                             <label key={key} className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${deliveryOption === key ? 'border-soni-orange bg-soni-orange/5' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -576,70 +624,92 @@ const Checkout = () => {
 
                                 <button
                                     type="submit"
-                                    className="w-full py-3 bg-soni-navy text-white font-semibold rounded-lg hover:bg-soni-navy/90 transition-colors cursor-pointer"
+                                    className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform active:scale-[0.98] hover:cursor-pointer mb-2"
                                 >
                                     Continuer vers le paiement
-                                </button>
-                                
-                                {/* Bouton de debug temporaire */}
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        console.log('État actuel des champs:', shippingInfo)
-                                        console.log('Validation:', validateShippingInfo())
-                                    }}
-                                    className="w-full py-2 mt-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition-colors"
-                                >
-                                    🔍 Debug - Vérifier les champs
                                 </button>
                             </form>
                         </div>
 
-                        {/* Récapitulatif */}
+
+                        {/* Récapitulatif (essentiel uniquement) */}
                         <div>
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-4">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Récapitulatif</h2>
-                                
-                                {/* Articles */}
-                                <div className="space-y-3 mb-4">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex items-center gap-3">
-                                            <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium truncate">{item.name}</p>
-                                                <p className="text-xs text-gray-600">Qté: {item.quantity}</p>
-                                            </div>
-                                            <p className="text-sm font-semibold">{formatPrice(item.price * item.quantity)}</p>
-                                        </div>
-                                    ))}
+                                <div className="flex items-start justify-between mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900">Récapitulatif</h2>
+                                    <Link to="/cart" className="text-xs font-medium text-blue-500 hover:underline">Modifier</Link>
                                 </div>
 
+                                {/* Liste condensée */}
+                                <div className="mb-4 space-y-2">
+                                    {cart.slice(0, 4).map(item => (
+                                        <div key={item.id} className="flex items-center gap-3">
+                                            <img src={item.image} alt={item.name} className="w-10 h-10 rounded-md object-cover ring-1 ring-gray-200" />
+                                            <p className="flex-1 text-xs font-medium text-gray-700 truncate">{item.name}</p>
+                                            <span className="text-[11px] font-semibold text-gray-900 tabular-nums">×{item.quantity}</span>
+                                        </div>
+                                    ))}
+                                    {cart.length > 4 && (
+                                        <p className="text-[11px] text-gray-500">… + {cart.length - 4} autres articles</p>
+                                    )}
+                                </div>
                                 <hr className="my-4" />
-
-                                <div className="space-y-2">
+                                {/* Montants */}
+                                <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span>Sous-total</span>
-                                        <span>{formatPrice(subtotal)}</span>
+                                        <span className="text-gray-600">Sous-total</span>
+                                        <span className="font-medium">{formatPrice(subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Livraison</span>
-                                        <span>{shipping === 0 ? 'Gratuit' : formatPrice(shipping)}</span>
+                                        <span className="text-gray-600">Livraison</span>
+                                        <span className={shipping === 0 ? 'text-green-600 font-medium' : 'font-medium'}>{shipping === 0 ? 'Gratuite' : formatPrice(shipping)}</span>
                                     </div>
+                                    {appliedPromo && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>Code {appliedPromo.code}</span>
+                                            <span>-{formatPrice(promoDiscount)}</span>
+                                        </div>
+                                    )}
                                     <hr />
-                                    <div className="flex justify-between text-lg font-bold">
-                                        <span>Total</span>
-                                        <span className="text-soni-navy">{formatPrice(total)}</span>
+
+                                    {/* Champ Code Promo (déplacé depuis le panier) */}
+                                    <div className="mt-2 mb-4">
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Code promo</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={promoCode}
+                                                onChange={(e) => setPromoCode(e.target.value)}
+                                                placeholder="WELCOME10"
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-soni-orange focus:border-soni-orange outline-none text-xs"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={applyPromoCode}
+                                                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-xs"
+                                            >
+                                                Appliquer
+                                            </button>
+                                        </div>
+                                        {appliedPromo && (
+                                            <p className="mt-1 text-[11px] text-green-600">Code {appliedPromo.code} appliqué</p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between items-baseline">
+                                        <span className="text-xs uppercase tracking-wide text-gray-500">Total</span>
+                                        <span className="text-lg font-bold text-soni-navy tabular-nums">{formatPrice(total)}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}             
+                )}
 
                 {step === 2 && (
                     <div className="max-w-4xl mx-auto">
                         {/* En-tête de révision */}
-                        <div className="bg-gradient-to-r from-soni-navy to-blue-700 text-white rounded-xl p-6 mb-8">
+                        <div className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 mb-2">
                             <div className="text-center">
                                 <CheckIcon className="w-12 h-12 mx-auto mb-4 text-green-300" />
                                 <h2 className="text-xl font-bold mb-2">Vérifiez votre commande</h2>
@@ -656,7 +726,7 @@ const Checkout = () => {
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-semibold text-gray-900">📍 Livraison</h3>
-                                        <button 
+                                        <button
                                             onClick={() => setStep(1)}
                                             className="text-soni-navy hover:text-soni-navy/80 text-sm font-medium"
                                         >
@@ -665,7 +735,7 @@ const Checkout = () => {
                                     </div>
                                     <div className="space-y-2 text-sm text-gray-600">
                                         <p className="font-medium text-gray-900">{shippingInfo.firstName} {shippingInfo.lastName}</p>
-                                        <p>{shippingInfo.address}</p>
+                                        <p>{[shippingInfo.quartier, shippingInfo.city].filter(Boolean).join(', ')}</p>
                                         <p>{shippingInfo.city}, {shippingInfo.country}</p>
                                         <p>📞 {shippingInfo.phone}</p>
                                         <p>✉️ {shippingInfo.email}</p>
@@ -688,7 +758,7 @@ const Checkout = () => {
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-semibold text-gray-900">💳 Paiement</h3>
-                                        <button 
+                                        <button
                                             onClick={() => setStep(2)}
                                             className="text-soni-navy hover:text-soni-navy/80 text-sm font-medium"
                                         >
@@ -743,7 +813,7 @@ const Checkout = () => {
                             <div className="lg:sticky lg:top-4">
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-6">💰 Récapitulatif final</h3>
-                                    
+
                                     <div className="space-y-3 mb-6">
                                         <div className="flex justify-between">
                                             <span>Sous-total ({cart.reduce((sum, item) => sum + item.quantity, 0)} articles)</span>
@@ -755,6 +825,12 @@ const Checkout = () => {
                                                 {shipping === 0 ? 'Gratuit ✨' : formatPrice(shipping)}
                                             </span>
                                         </div>
+                                        {appliedPromo && (
+                                            <div className="flex justify-between text-green-600">
+                                                <span>Code {appliedPromo.code}</span>
+                                                <span>-{formatPrice(promoDiscount)}</span>
+                                            </div>
+                                        )}
                                         <hr className="my-4" />
                                         <div className="flex justify-between text-xl font-bold">
                                             <span>Total à payer</span>
@@ -827,31 +903,50 @@ const Checkout = () => {
                             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckIcon className="w-8 h-8 text-green-600" />
                             </div>
-                            
+
                             <h2 className="text-xl font-bold text-gray-900 mb-4">Commande confirmée !</h2>
                             <p className="text-gray-600 mb-6">
                                 Votre commande a été enregistrée avec succès. Vous recevrez un email de confirmation à l'adresse {shippingInfo.email}.
                             </p>
 
-                            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
                                 <div className="flex justify-between items-center">
                                     <span className="font-medium">Numéro de commande:</span>
-                                    <span className="text-soni-navy font-semibold">#{orderNumber || `SN${Date.now().toString().slice(-6)}`}</span>
+                                    <span className="text-soni-navy font-semibold">#{finalOrderSummary?.number || orderNumber || `SN${Date.now().toString().slice(-6)}`}</span>
                                 </div>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="text-sm text-gray-600">Montant total:</span>
-                                    <span className="text-lg font-bold text-green-600">{formatPrice(total)}</span>
-                                </div>
-                                <div className="flex justify-between items-center mt-1">
-                                    <span className="text-sm text-gray-600">Articles:</span>
-                                    <span className="text-sm font-medium">{cart.reduce((sum, item) => sum + item.quantity, 0)} produit{cart.reduce((sum, item) => sum + item.quantity, 0) > 1 ? 's' : ''}</span>
+                                <div className="mt-3 space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Sous-total</span>
+                                        <span className="font-medium">{formatPrice(finalOrderSummary?.subtotal || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Livraison</span>
+                                        <span className={finalOrderSummary?.shipping === 0 ? 'text-green-600 font-medium' : 'font-medium'}>
+                                            {finalOrderSummary ? (finalOrderSummary.shipping === 0 ? 'Gratuite' : formatPrice(finalOrderSummary.shipping)) : formatPrice(0)}
+                                        </span>
+                                    </div>
+                                    {finalOrderSummary?.discount > 0 && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>Remise</span>
+                                            <span>-{formatPrice(finalOrderSummary.discount)}</span>
+                                        </div>
+                                    )}
+                                    <hr />
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs uppercase tracking-wide text-gray-500">Total payé</span>
+                                        <span className="text-lg font-bold text-green-600">{formatPrice(finalOrderSummary?.total || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1">
+                                        <span className="text-sm text-gray-600">Articles</span>
+                                        <span className="text-sm font-medium">{finalOrderSummary?.itemsCount || 0}</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <Link
                                     to="/orders"
-                                    className="block w-full py-3 bg-gradient-to-r from-soni-navy to-blue-700 hover:from-soni-navy/90 hover:to-blue-700/90 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-center"
+                                    className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform active:scale-[0.98] cursor-pointer mb-2"
                                 >
                                     📋 Suivre ma commande
                                 </Link>

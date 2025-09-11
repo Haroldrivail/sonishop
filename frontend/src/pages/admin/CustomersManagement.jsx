@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import EmptyState from '../../components/admin/EmptyState'
 import {
     UserIcon,
     MagnifyingGlassIcon,
@@ -16,87 +17,16 @@ import {
     ChevronDownIcon
 } from '../../components/icons'
 
+import { api } from '../../api/client'
+
 const CustomersManagement = () => {
-    const [customers, setCustomers] = useState([
-        {
-            id: 1,
-            name: 'Jean Dupont',
-            email: 'jean.dupont@email.com',
-            phone: '+237 6 78 90 12 34',
-            address: 'Douala, Cameroun',
-            joinDate: '2024-03-15',
-            totalOrders: 12,
-            totalSpent: 2450000,
-            status: 'active',
-            lastOrder: '2025-08-10',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
-        },
-        {
-            id: 2,
-            name: 'Marie Claire Ngono',
-            email: 'marie.ngono@email.com',
-            phone: '+237 6 55 44 33 22',
-            address: 'Yaoundé, Cameroun',
-            joinDate: '2024-01-20',
-            totalOrders: 8,
-            totalSpent: 1680000,
-            status: 'active',
-            lastOrder: '2025-08-12',
-            avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100'
-        },
-        {
-            id: 3,
-            name: 'Paul Martin Kamga',
-            email: 'paul.kamga@email.com',
-            phone: '+237 6 99 88 77 66',
-            address: 'Bafoussam, Cameroun',
-            joinDate: '2023-11-10',
-            totalOrders: 25,
-            totalSpent: 4250000,
-            status: 'vip',
-            lastOrder: '2025-08-11',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
-        },
-        {
-            id: 4,
-            name: 'Sophie Mballa',
-            email: 'sophie.mballa@email.com',
-            phone: '+237 6 11 22 33 44',
-            address: 'Garoua, Cameroun',
-            joinDate: '2024-06-08',
-            totalOrders: 3,
-            totalSpent: 425000,
-            status: 'new',
-            lastOrder: '2025-07-28',
-            avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100'
-        },
-        {
-            id: 5,
-            name: 'Pierre Essomba',
-            email: 'pierre.essomba@email.com',
-            phone: '+237 6 77 66 55 44',
-            address: 'Bamenda, Cameroun',
-            joinDate: '2023-09-22',
-            totalOrders: 45,
-            totalSpent: 8950000,
-            status: 'vip',
-            lastOrder: '2025-08-09',
-            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
-        },
-        {
-            id: 6,
-            name: 'Fatou Diallo',
-            email: 'fatou.diallo@email.com',
-            phone: '+237 6 33 22 11 00',
-            address: 'Maroua, Cameroun',
-            joinDate: '2024-02-14',
-            totalOrders: 0,
-            totalSpent: 0,
-            status: 'inactive',
-            lastOrder: null,
-            avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100'
-        }
-    ])
+    const [customers, setCustomers] = useState([])
+    const [page, setPage] = useState(1)
+    const [perPage] = useState(20)
+    const [total, setTotal] = useState(0)
+    const [lastPage, setLastPage] = useState(1)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
 
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
@@ -187,10 +117,43 @@ const CustomersManagement = () => {
         </button>
     )
 
-    const totalCustomers = customers.length
+    const totalCustomers = total
     const activeCustomers = customers.filter(c => c.status === 'active' || c.status === 'vip').length
     const vipCustomers = customers.filter(c => c.status === 'vip').length
-    const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0)
+    const totalRevenue = customers.reduce((sum, c) => sum + c.total_spent, 0)
+
+    const fetchCustomers = useCallback(async () => {
+        setLoading(true); setError(null)
+        try {
+            const { data } = await api.get('/admin/customers', { params: { page, per_page: perPage, search: searchTerm || undefined, status: filterStatus !== 'all' ? filterStatus : undefined } })
+            const payload = data?.data || data
+            const items = payload.items || []
+            const meta = payload.pagination || {}
+            setCustomers(items.map(u => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                phone: u.phone || '',
+                city: u.city || '',
+                quartier: u.quartier || '',
+                country: u.country || '',
+                joinDate: u.created_at,
+                totalOrders: u.orders_count,
+                totalSpent: u.total_spent,
+                status: u.status,
+                lastOrder: u.last_order || null,
+                avatar: u.avatar || null,
+            })))
+            setTotal(meta.total || items.length)
+            setLastPage(meta.last_page || 1)
+        } catch (e) {
+            setError(e)
+        } finally {
+            setLoading(false)
+        }
+    }, [page, perPage, searchTerm, filterStatus])
+
+    useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
     return (
         <div className="space-y-6">
@@ -209,6 +172,27 @@ const CustomersManagement = () => {
                     <UserIcon className="h-4 w-4 mr-2" />
                     Ajouter un Client
                 </button>
+            </div>
+            {error && <div className="text-red-600 text-sm">Erreur de chargement des clients.</div>}
+            {loading && <div className="text-gray-500 text-sm">Chargement...</div>}
+
+            {/* Filtres */}
+            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center md:space-x-4 space-y-3 md:space-y-0">
+                <div className="flex-1">
+                    <input
+                        value={searchTerm}
+                        onChange={e => { setPage(1); setSearchTerm(e.target.value) }}
+                        placeholder="Rechercher client (nom, email, téléphone)"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                </div>
+                <select
+                    value={filterStatus}
+                    onChange={e => { setPage(1); setFilterStatus(e.target.value) }}
+                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                    {statuses.map(s => <option key={s} value={s}>{s === 'all' ? 'Tous statuts' : s}</option>)}
+                </select>
             </div>
 
             {/* Stats Cards */}
@@ -316,7 +300,23 @@ const CustomersManagement = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredCustomers.map((customer) => (
+                            {loading && (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-500">Chargement des clients...</td>
+                                </tr>
+                            )}
+                            {!loading && filteredCustomers.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="p-0">
+                                        <EmptyState 
+                                            type="customers"
+                                            title="Aucun client trouvé"
+                                            description="Vos clients apparaîtront ici lorsqu'ils s'inscriront sur votre boutique."
+                                        />
+                                    </td>
+                                </tr>
+                            )}
+                            {!loading && filteredCustomers.map((customer) => (
                                 <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
@@ -329,7 +329,7 @@ const CustomersManagement = () => {
                                                 <div className="text-sm font-medium text-gray-900">{customer.name}</div>
                                                 <div className="text-sm text-gray-500 flex items-center">
                                                     <MapPinIcon className="h-3 w-3 mr-1" />
-                                                    {customer.address}
+                                                    {[customer.quartier, customer.city].filter(Boolean).join(', ')}
                                                 </div>
                                             </div>
                                         </div>
@@ -409,6 +409,22 @@ const CustomersManagement = () => {
                             Suivant
                         </button>
                     </div>
+                </div>
+            </div>
+            {/* Pagination */}
+            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center justify-between">
+                <div className="text-sm text-gray-600">Page {page} / {lastPage} — {total} clients</div>
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1 || loading}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-40"
+                    >Précédent</button>
+                    <button
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                        disabled={page >= lastPage || loading}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-40"
+                    >Suivant</button>
                 </div>
             </div>
         </div>

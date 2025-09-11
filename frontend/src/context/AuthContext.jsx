@@ -1,212 +1,153 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { apiClient } from '../api/client'
+import { api } from '../api/client'
 
-// Types d'actions pour le reducer
-const AUTH_ACTIONS = {
-  LOGIN_START: 'LOGIN_START',
-  LOGIN_SUCCESS: 'LOGIN_SUCCESS',
-  LOGIN_FAILURE: 'LOGIN_FAILURE',
-  LOGOUT: 'LOGOUT',
-  REGISTER_START: 'REGISTER_START',
-  REGISTER_SUCCESS: 'REGISTER_SUCCESS',
-  REGISTER_FAILURE: 'REGISTER_FAILURE',
-  SET_USER: 'SET_USER',
-  CLEAR_ERROR: 'CLEAR_ERROR'
-}
-
-// État initial
-const initialState = {
-  user: {
-    id: 1,
-    name: 'Utilisateur Test',
-    email: 'test@sonishop.com',
-    role: 'user'
-  }, 
-  token: localStorage.getItem('token') || 'demo-token',
-  loading: false,
-  error: null,
-  isAuthenticated: true // Connecté par défaut pour les tests
-}
-
-// Reducer pour gérer l'état d'authentification
-function authReducer(state, action) {
-  switch (action.type) {
-    case AUTH_ACTIONS.LOGIN_START:
-    case AUTH_ACTIONS.REGISTER_START:
-      return {
-        ...state,
-        loading: true,
-        error: null
-      }
-    
-    case AUTH_ACTIONS.LOGIN_SUCCESS:
-    case AUTH_ACTIONS.REGISTER_SUCCESS:
-      return {
-        ...state,
-        loading: false,
-        user: action.payload.user,
-        token: action.payload.token,
-        isAuthenticated: true,
-        error: null
-      }
-    
-    case AUTH_ACTIONS.LOGIN_FAILURE:
-    case AUTH_ACTIONS.REGISTER_FAILURE:
-      return {
-        ...state,
-        loading: false,
-        error: action.payload,
-        isAuthenticated: false
-      }
-    
-    case AUTH_ACTIONS.LOGOUT:
-      return {
-        ...state,
-        user: null,
-        token: null,
-        isAuthenticated: false
-      }
-    
-    case AUTH_ACTIONS.SET_USER:
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true
-      }
-    
-    case AUTH_ACTIONS.CLEAR_ERROR:
-      return {
-        ...state,
-        error: null
-      }
-    
-    default:
-      return state
-  }
-}
-
-// Création du contexte
 const AuthContext = createContext()
 
-// Provider du contexte d'authentification
-export function AuthProvider({ children }) {
-  const [state, dispatch] = useReducer(authReducer, initialState)
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
 
-  // Vérifier si l'utilisateur est connecté au chargement
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [token, setToken] = useState(localStorage.getItem('token'))
+
+  // Configurer le token dans localStorage et headers
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const user = localStorage.getItem('user')
-    
-    if (token && user) {
-      try {
-        const parsedUser = JSON.parse(user)
-        dispatch({
-          type: AUTH_ACTIONS.SET_USER,
-          payload: parsedUser
-        })
-      } catch (error) {
-        // Si erreur de parsing, déconnecter l'utilisateur
-        logout()
-      }
+    if (token) {
+      localStorage.setItem('token', token)
+    } else {
+      localStorage.removeItem('token')
+      setUser(null)
     }
-  }, [])
+  }, [token])
 
-  // Fonction de connexion
-  const login = async (credentials) => {
-    dispatch({ type: AUTH_ACTIONS.LOGIN_START })
-    
+  // Vérifier l'utilisateur au chargement si token présent
+  useEffect(() => {
+    if (token) {
+      checkUser()
+    } else {
+      setLoading(false)
+    }
+  }, [token])
+
+  // Fonction simple pour récupérer l'utilisateur actuel
+  const checkUser = async () => {
     try {
-      // TODO: Remplacer par l'appel API réel vers Laravel
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials)
-      })
-      
-      if (!response.ok) {
-        throw new Error('Identifiants incorrects')
-      }
-      
-      const data = await response.json()
-      
-      // Stocker dans localStorage
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: data
-      })
-      
-      return { success: true }
+      const { data } = await apiClient.get('/auth/me')
+      setUser(data.user)
     } catch (error) {
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_FAILURE,
-        payload: error.message
-      })
-      return { success: false, error: error.message }
+      console.error('Erreur lors de la récupération de l\'utilisateur:', error)
+      // Token invalide, on nettoie
+      setToken(null)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Fonction d'inscription
-  const register = async (userData) => {
-    dispatch({ type: AUTH_ACTIONS.REGISTER_START })
-    
+  // Fonction simple pour sauvegarder la session après login réussi
+  const setSession = (userData, userToken) => {
+    setUser(userData)
+    setToken(userToken)
+  }
+
+  // Rafraîchir explicitement l'utilisateur (ex: après upload avatar)
+  const refreshUser = async () => {
     try {
-      // TODO: Remplacer par l'appel API réel vers Laravel
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData)
-      })
-      
-      if (!response.ok) {
-        throw new Error('Erreur lors de l\'inscription')
-      }
-      
-      const data = await response.json()
-      
-      // Stocker dans localStorage
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      
-      dispatch({
-        type: AUTH_ACTIONS.REGISTER_SUCCESS,
-        payload: data
-      })
-      
-      return { success: true }
-    } catch (error) {
-      dispatch({
-        type: AUTH_ACTIONS.REGISTER_FAILURE,
-        payload: error.message
-      })
-      return { success: false, error: error.message }
+      const { data } = await api.auth.me()
+      if (data?.user) setUser(data.user)
+      return { success: true, user: data?.user }
+    } catch (e) {
+      return { success: false, error: e }
     }
   }
 
-  // Fonction de déconnexion
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    dispatch({ type: AUTH_ACTIONS.LOGOUT })
+  // Fonction simple pour nettoyer la session
+  const clearSession = () => {
+    setUser(null)
+    setToken(null)
   }
 
-  // Fonction pour effacer les erreurs
-  const clearError = () => {
-    dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR })
+  // Déconnexion (API + nettoyage local)
+  const logout = async () => {
+    try {
+      if (token) {
+        try { await api.auth.logout() } catch (e) { /* ignorer erreurs serveur */ }
+      }
+    } finally {
+      clearSession()
+    }
   }
 
-  // Valeurs du contexte
+  // Fonction pour authentifier avec un token
+  const login = async (authToken) => {
+    try {
+      setToken(authToken)
+      // Récupérer les informations utilisateur avec le token
+      await checkUser()
+    } catch (error) {
+      console.error('Erreur lors de l\'authentification:', error)
+      clearSession()
+    }
+  }
+
+  // Mettre à jour le profil utilisateur via l'API
+  const updateProfile = async (profileData) => {
+    try {
+      await api.profile.update(profileData)
+      // Recharger l'utilisateur à jour
+      const { data } = await api.profile.get()
+      if (data) {
+        // Certains endpoints renvoient { user: {...} }, d'autres directement les champs
+        setUser(data.user || { ...user, ...profileData })
+      } else {
+        setUser(prev => ({ ...prev, ...profileData }))
+      }
+      return { success: true }
+    } catch (err) {
+      const formatted = err?.response?.data?.formattedErrors
+      return { success: false, errors: formatted || null, raw: err }
+    }
+  }
+
+  // Mettre à jour le mot de passe utilisateur
+  const updatePassword = async ({ currentPassword, newPassword, confirmPassword }) => {
+    try {
+      await api.profile.updatePassword({
+        current_password: currentPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword
+      })
+      return { success: true }
+    } catch (err) {
+      const formatted = err?.response?.data?.formattedErrors
+      return { success: false, errors: formatted || null, raw: err }
+    }
+  }
+
   const value = {
-    ...state,
+    // État
+    user,
+    loading,
+    token,
+    
+    // Actions simples
+    setSession,
+    clearSession,
     login,
-    register,
-    logout,
-    clearError
+  refreshUser,
+  updateProfile,
+  updatePassword,
+  logout,
+    
+    // Computed
+    isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin'
   }
 
   return (
@@ -214,13 +155,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-// Hook personnalisé pour utiliser le contexte d'authentification
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth doit être utilisé à l\'intérieur d\'un AuthProvider')
-  }
-  return context
 }

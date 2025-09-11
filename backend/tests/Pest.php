@@ -15,6 +15,11 @@ pest()->extend(Tests\TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
+// Ensure Sanctum treats test requests as stateful so cookie flows work in tests
+beforeEach(function () {
+    config(['sanctum.stateful' => array_merge((array) config('sanctum.stateful', []), ['localhost', '127.0.0.1'])]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

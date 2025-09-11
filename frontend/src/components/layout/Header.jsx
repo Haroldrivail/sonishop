@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
 import { ShoppingCartIcon, ChevronDownIcon, MenuIcon } from '../icons'
 
 function Header() {
   const { user, isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
   const { cartItemsCount } = useCart()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cartAnimation, setCartAnimation] = useState(false)
@@ -21,9 +22,10 @@ function Header() {
     setPrevCartCount(cartItemsCount)
   }, [cartItemsCount, prevCartCount])
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     setIsMenuOpen(false)
+    navigate('/')
   }
 
   return (
@@ -122,7 +124,7 @@ function Header() {
                     </Link>
                     {user?.role === 'admin' && (
                       <Link
-                        to="/admin"
+                        to="/dashboard"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
                         onClick={() => setIsMenuOpen(false)}
                       >

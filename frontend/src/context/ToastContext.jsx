@@ -1,45 +1,56 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
 import { CheckIcon, XIcon } from '../components/icons'
 
-const ToastContext = createContext()
+// Simple ToastContext
+// - toasts: array of { id, type, title, description }
+// - showToast({ type, title, description, duration }) -> id
+// - removeToast(id)
 
-export const useToast = () => {
-  const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider')
-  }
-  return context
-}
+const ToastContext = createContext(null)
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([])
+  const timersRef = useRef({})
 
-  const addToast = (message, type = 'info', duration = 3000) => {
-    const id = Date.now() + Math.random()
-    const toast = { id, message, type, duration }
-    
-    setToasts(prev => [...prev, toast])
-    
+  useEffect(() => {
+    return () => {
+      // cleanup timers on unmount
+      Object.values(timersRef.current).forEach(clearTimeout)
+      timersRef.current = {}
+    }
+  }, [])
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+    if (timersRef.current[id]) {
+      clearTimeout(timersRef.current[id])
+      delete timersRef.current[id]
+    }
+  }, [])
+
+  const showToast = useCallback(({ type = 'info', title = '', description = '', message = '', duration = 4000 } = {}) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const resolvedMessage = message || title || description
+    const toast = { id, type, title, description, message: resolvedMessage }
+    setToasts(prev => [toast, ...prev])
+
     if (duration > 0) {
-      setTimeout(() => {
+      timersRef.current[id] = setTimeout(() => {
         removeToast(id)
       }, duration)
     }
-    
+
     return id
-  }
+  }, [removeToast])
 
-  const removeToast = (id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
-  }
-
-  const success = (message, duration) => addToast(message, 'success', duration)
-  const error = (message, duration) => addToast(message, 'error', duration)
-  const warning = (message, duration) => addToast(message, 'warning', duration)
-  const info = (message, duration) => addToast(message, 'info', duration)
+  // Helper shortcuts for consistency with older components
+  const success = (message, opts={}) => showToast({ type: 'success', message, ...opts })
+  const error = (message, opts={}) => showToast({ type: 'error', message, ...opts })
+  const info = (message, opts={}) => showToast({ type: 'info', message, ...opts })
+  const warning = (message, opts={}) => showToast({ type: 'warning', message, ...opts })
 
   return (
-    <ToastContext.Provider value={{ addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider value={{ toasts, showToast, removeToast, success, error, info, warning }}>
       {children}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </ToastContext.Provider>
@@ -101,6 +112,12 @@ const ToastContainer = ({ toasts, removeToast }) => {
       ))}
     </div>
   )
+}
+
+export const useToast = () => {
+  const ctx = useContext(ToastContext)
+  if (!ctx) throw new Error('useToast must be used within a ToastProvider')
+  return ctx
 }
 
 export default ToastProvider

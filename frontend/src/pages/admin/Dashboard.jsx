@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
     HomeIcon,
     ShoppingBagIcon,
@@ -20,10 +21,45 @@ import CustomersManagement from './CustomersManagement'
 import ReportsManagement from './ReportsManagement'
 import SettingsManagement from './SettingsManagement'
 import NotificationsPage from './NotificationsPage'
+import api from '../../api/client'
 
 const Dashboard = () => {
-    const { user, logout } = useAuth()
+    const { user, logout, login } = useAuth()
     const [activeTab, setActiveTab] = useState('overview')
+    const [searchParams, setSearchParams] = useSearchParams()
+    
+    // États pour les données dynamiques
+    const [dashboardStats, setDashboardStats] = useState([])
+    const [recentOrders, setRecentOrders] = useState([])
+    const [topProducts, setTopProducts] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    // Gestion de l'authentification après vérification d'email
+    useEffect(() => {
+        const token = searchParams.get('token')
+        const verified = searchParams.get('verified')
+        const alreadyVerified = searchParams.get('already_verified')
+
+        if (token && (verified || alreadyVerified)) {
+            // Authentifier l'utilisateur avec le token
+            login(token)
+            
+            // Nettoyer l'URL
+            const newSearchParams = new URLSearchParams(searchParams)
+            newSearchParams.delete('token')
+            newSearchParams.delete('verified')
+            newSearchParams.delete('already_verified')
+            setSearchParams(newSearchParams, { replace: true })
+            
+            // Afficher un message de succès
+            if (verified) {
+                console.log('Email vérifié avec succès! Bienvenue dans votre dashboard admin.')
+            } else if (alreadyVerified) {
+                console.log('Email déjà vérifié! Bienvenue dans votre dashboard admin.')
+            }
+        }
+    }, [searchParams, login, setSearchParams])
 
     // Configuration moderne de la sidebar avec charte graphique SoniShop
     const sidebarItems = [
@@ -36,60 +72,212 @@ const Dashboard = () => {
         { id: 'settings', name: 'Paramètres', icon: CogIcon }
     ]
 
-    // Données de démonstration avec prix en FCFA
-    const dashboardStats = [
-        {
-            title: 'Revenus Total',
-            value: '12,500,000 FCFA',
-            change: '+12.5%',
-            trend: 'up',
-            icon: CurrencyDollarIcon,
-            bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50',
-            iconColor: 'text-green-600'
-        },
-        {
-            title: 'Commandes',
-            value: '1,247',
-            change: '+8.3%',
-            trend: 'up',
-            icon: ClipboardListIcon,
-            bgColor: 'bg-gradient-to-r from-blue-50 to-cyan-50',
-            iconColor: 'text-blue-600'
-        },
-        {
-            title: 'Clients',
-            value: '892',
-            change: '+15.2%',
-            trend: 'up',
-            icon: UserIcon,
-            bgColor: 'bg-gradient-to-r from-purple-50 to-violet-50',
-            iconColor: 'text-purple-600'
-        },
-        {
-            title: 'Produits',
-            value: '156',
-            change: '+4.1%',
-            trend: 'up',
-            icon: ShoppingBagIcon,
-            bgColor: 'bg-gradient-to-r from-orange-50 to-amber-50',
-            iconColor: 'text-orange-600'
+    // Chargement des données du dashboard
+    useEffect(() => {
+        const loadDashboardData = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+
+                const [statsResponse, productsResponse] = await Promise.allSettled([
+                    api.dashboard.getStats(),
+                    api.products.getAll({ per_page: 12 })
+                ])
+
+                // --- Stats ---
+                if (statsResponse.status === 'fulfilled') {
+                    const statsPayload = statsResponse.value?.data
+                    // Handle standardized APIResponse: { status, data, ... }
+                    const stats = statsPayload?.data || statsPayload || {}
+                    setDashboardStats([
+                        {
+                            title: 'Revenus Total',
+                            value: stats.totalRevenue ? formatPrice(stats.totalRevenue) : '0 FCFA',
+                            change: stats.revenueChange || '0%',
+                            trend: stats.revenueChange?.startsWith('+') ? 'up' : 'down',
+                            icon: CurrencyDollarIcon,
+                            bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50',
+                            iconColor: 'text-green-600'
+                        },
+                        {
+                            title: 'Commandes',
+                            value: stats.totalOrders || '0',
+                            change: stats.ordersChange || '0%',
+                            trend: stats.ordersChange?.startsWith('+') ? 'up' : 'down',
+                            icon: ClipboardListIcon,
+                            bgColor: 'bg-gradient-to-r from-blue-50 to-cyan-50',
+                            iconColor: 'text-blue-600'
+                        },
+                        {
+                            title: 'Clients',
+                            value: stats.totalCustomers || '0',
+                            change: stats.customersChange || '0%',
+                            trend: stats.customersChange?.startsWith('+') ? 'up' : 'down',
+                            icon: UserIcon,
+                            bgColor: 'bg-gradient-to-r from-purple-50 to-violet-50',
+                            iconColor: 'text-purple-600'
+                        },
+                        {
+                            title: 'Produits',
+                            value: stats.totalProducts || '0',
+                            change: stats.productsChange || '0%',
+                            trend: stats.productsChange?.startsWith('+') ? 'up' : 'down',
+                            icon: ShoppingBagIcon,
+                            bgColor: 'bg-gradient-to-r from-orange-50 to-amber-50',
+                            iconColor: 'text-orange-600'
+                        }
+                    ])
+                    // Recent orders (admin)
+                    if (stats.recent_orders) {
+                        setRecentOrders(stats.recent_orders.map(o => ({
+                            id: o.number || o.id,
+                            customer: o.user?.name || 'Client inconnu',
+                            amount: o.total || 0,
+                            status: o.status || 'pending',
+                            date: o.created_at
+                        })))
+                    }
+                } else {
+                    // Fallback avec données par défaut
+                    setDashboardStats([
+                        {
+                            title: 'Revenus Total',
+                            value: '0 FCFA',
+                            change: '0%',
+                            trend: 'up',
+                            icon: CurrencyDollarIcon,
+                            bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50',
+                            iconColor: 'text-green-600'
+                        },
+                        {
+                            title: 'Commandes',
+                            value: '0',
+                            change: '0%',
+                            trend: 'up',
+                            icon: ClipboardListIcon,
+                            bgColor: 'bg-gradient-to-r from-blue-50 to-cyan-50',
+                            iconColor: 'text-blue-600'
+                        },
+                        {
+                            title: 'Clients',
+                            value: '0',
+                            change: '0%',
+                            trend: 'up',
+                            icon: UserIcon,
+                            bgColor: 'bg-gradient-to-r from-purple-50 to-violet-50',
+                            iconColor: 'text-purple-600'
+                        },
+                        {
+                            title: 'Produits',
+                            value: '0',
+                            change: '0%',
+                            trend: 'up',
+                            icon: ShoppingBagIcon,
+                            bgColor: 'bg-gradient-to-r from-orange-50 to-amber-50',
+                            iconColor: 'text-orange-600'
+                        }
+                    ])
+                }
+
+                // --- Products (top) ---
+                if (productsResponse.status === 'fulfilled') {
+                    const raw = productsResponse.value?.data
+                    // Support envelopes: { status, data: { data: [..] } } OR { status, data: [..] }
+                    let productsData = []
+                    if (Array.isArray(raw?.data)) {
+                        productsData = raw.data
+                    } else if (Array.isArray(raw?.data?.data)) { // paginator collection
+                        productsData = raw.data.data
+                    } else if (Array.isArray(raw)) { // plain array
+                        productsData = raw
+                    }
+                    setTopProducts(productsData.slice(0, 4).map(product => ({
+                        name: product.name || 'Produit sans nom',
+                        sales: product.sales_count || 0,
+                        revenue: product.total_revenue || 0,
+                        image: product.image_url || product.images?.[0] || '/placeholder-product.png'
+                    })))
+                } else {
+                    setTopProducts([])
+                }
+
+                // --- Recent orders for non-admin (unchanged, ensure safe slice) ---
+                if (!recentOrders.length && user && user.role !== 'admin') {
+                    try {
+                        const userOrdersResp = await api.orders.getAll()
+                        const rawOrders = userOrdersResp?.data
+                        let ordersData = []
+                        if (Array.isArray(rawOrders?.data)) {
+                            ordersData = rawOrders.data
+                        } else if (Array.isArray(rawOrders?.data?.data)) {
+                            ordersData = rawOrders.data.data
+                        } else if (Array.isArray(rawOrders)) {
+                            ordersData = rawOrders
+                        }
+                        setRecentOrders(ordersData.slice(0, 5).map(order => ({
+                            id: order.number || order.id,
+                            customer: user.name,
+                            amount: order.total || 0,
+                            status: order.status || 'pending',
+                            date: order.created_at
+                        })))
+                    } catch (_) {
+                        setRecentOrders([])
+                    }
+                }
+
+            } catch (err) {
+                console.error('Erreur lors du chargement des données:', err)
+                setError('Erreur lors du chargement des données du dashboard')
+                
+                // Données de fallback en cas d'erreur
+                setDashboardStats([
+                    {
+                        title: 'Revenus Total',
+                        value: 'Indisponible',
+                        change: '0%',
+                        trend: 'up',
+                        icon: CurrencyDollarIcon,
+                        bgColor: 'bg-gradient-to-r from-gray-50 to-gray-100',
+                        iconColor: 'text-gray-600'
+                    },
+                    {
+                        title: 'Commandes',
+                        value: 'Indisponible',
+                        change: '0%',
+                        trend: 'up',
+                        icon: ClipboardListIcon,
+                        bgColor: 'bg-gradient-to-r from-gray-50 to-gray-100',
+                        iconColor: 'text-gray-600'
+                    },
+                    {
+                        title: 'Clients',
+                        value: 'Indisponible',
+                        change: '0%',
+                        trend: 'up',
+                        icon: UserIcon,
+                        bgColor: 'bg-gradient-to-r from-gray-50 to-gray-100',
+                        iconColor: 'text-gray-600'
+                    },
+                    {
+                        title: 'Produits',
+                        value: 'Indisponible',
+                        change: '0%',
+                        trend: 'up',
+                        icon: ShoppingBagIcon,
+                        bgColor: 'bg-gradient-to-r from-gray-50 to-gray-100',
+                        iconColor: 'text-gray-600'
+                    }
+                ])
+                setRecentOrders([])
+                setTopProducts([])
+            } finally {
+                setLoading(false)
+            }
         }
-    ]
 
-    const recentOrders = [
-        { id: '#SN001234', customer: 'Jean Dupont', amount: 850000, status: 'completed', date: '2025-08-12' },
-        { id: '#SN001235', customer: 'Marie Claire', amount: 163000, status: 'pending', date: '2025-08-12' },
-        { id: '#SN001236', customer: 'Paul Martin', amount: 425000, status: 'processing', date: '2025-08-11' },
-        { id: '#SN001237', customer: 'Sophie Ngono', amount: 680000, status: 'completed', date: '2025-08-11' },
-        { id: '#SN001238', customer: 'Pierre Kamga', amount: 195000, status: 'cancelled', date: '2025-08-10' }
-    ]
-
-    const topProducts = [
-        { name: 'iPhone 15 Pro Max', sales: 45, revenue: 38250000, image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=100' },
-        { name: 'Samsung Galaxy S24', sales: 32, revenue: 22400000, image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=100' },
-        { name: 'MacBook Air M2', sales: 28, revenue: 23800000, image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=100' },
-        { name: 'AirPods Pro 2', sales: 67, revenue: 10921000, image: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=100' }
-    ]
+        loadDashboardData()
+    }, [user])
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -140,36 +328,67 @@ const Dashboard = () => {
             default:
                 return (
                     <div className="space-y-6">
-                        {/* Statistiques principales avec design moderne */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {dashboardStats.map((stat, index) => {
-                                const Icon = stat.icon
-                                return (
-                                    <div key={index} className={`${stat.bgColor} rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-6 group cursor-pointer`}>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                                                <p className="text-xl font-bold text-gray-900 mb-2">{stat.value}</p>
-                                                <div className="flex items-center">
-                                                    {stat.trend === 'up' ? (
-                                                        <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
-                                                    ) : (
-                                                        <TrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
-                                                    )}
-                                                    <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                                                        }`}>
-                                                        {stat.change}
-                                                    </span>
-                                                    <span className="text-sm text-gray-500 ml-1">ce mois</span>
-                                                </div>
-                                            </div>
-                                            <div className={`p-3 rounded-xl ${stat.iconColor} bg-white/50 duration-200`}>
-                                                <Icon className="h-6 w-6" />
-                                            </div>
+                        {/* Message d'erreur si présent */}
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div className="flex">
+                                    <div className="ml-3">
+                                        <h3 className="text-sm font-medium text-red-800">Erreur</h3>
+                                        <div className="mt-2 text-sm text-red-700">
+                                            <p>{error}</p>
                                         </div>
                                     </div>
-                                )
-                            })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Skeleton de chargement ou statistiques principales */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {loading ? (
+                                // Skeleton loading
+                                Array.from({ length: 4 }).map((_, index) => (
+                                    <div key={index} className="bg-gray-50 rounded-xl border border-gray-100 shadow-sm p-6 animate-pulse">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                                                <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
+                                                <div className="h-4 bg-gray-200 rounded w-20"></div>
+                                            </div>
+                                            <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                // Statistiques principales avec design moderne
+                                dashboardStats.map((stat, index) => {
+                                    const Icon = stat.icon
+                                    return (
+                                        <div key={index} className={`${stat.bgColor} rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-6 group cursor-pointer`}>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                                                    <p className="text-xl font-bold text-gray-900 mb-2">{stat.value}</p>
+                                                    <div className="flex items-center">
+                                                        {stat.trend === 'up' ? (
+                                                            <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                                                        ) : (
+                                                            <TrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
+                                                        )}
+                                                        <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                                                            }`}>
+                                                            {stat.change}
+                                                        </span>
+                                                        <span className="text-sm text-gray-500 ml-1">ce mois</span>
+                                                    </div>
+                                                </div>
+                                                <div className={`p-3 rounded-xl ${stat.iconColor} bg-white/50 duration-200`}>
+                                                    <Icon className="h-6 w-6" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
                         </div>
 
                         {/* Section Commandes récentes et Produits top */}
@@ -188,31 +407,59 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                                 <div className="p-6">
-                                    <div className="space-y-4">
-                                        {recentOrders.map((order) => (
-                                            <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 bg-soni-navy rounded-lg flex items-center justify-center">
-                                                        <span className="text-blue text-sm font-bold">
-                                                            {order.id.slice(-2)}
+                                    {loading ? (
+                                        // Skeleton pour commandes
+                                        <div className="space-y-4">
+                                            {Array.from({ length: 5 }).map((_, index) => (
+                                                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg animate-pulse">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                                                        <div>
+                                                            <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                                                            <div className="h-3 bg-gray-200 rounded w-32"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+                                                        <div className="h-6 bg-gray-200 rounded w-16"></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : recentOrders.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {recentOrders.map((order, index) => (
+                                                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="w-10 h-10 bg-soni-navy rounded-lg flex items-center justify-center">
+                                                            <span className="text-blue-300 text-sm font-bold">
+                                                                {typeof order.id === 'string' ? order.id.slice(-2) : String(order.id).slice(-2)}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-900">
+                                                                {typeof order.id === 'string' && order.id.startsWith('#') ? order.id : `#${order.id}`}
+                                                            </p>
+                                                            <p className="text-sm text-gray-500">{order.customer}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-semibold text-gray-900">
+                                                            {formatPrice(order.amount)}
+                                                        </p>
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                                            {getStatusText(order.status)}
                                                         </span>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-900">{order.id}</p>
-                                                        <p className="text-sm text-gray-500">{order.customer}</p>
-                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm font-semibold text-gray-900">
-                                                        {formatPrice(order.amount)}
-                                                    </p>
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                                        {getStatusText(order.status)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <ClipboardListIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                            <p>Aucune commande récente</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -230,29 +477,58 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                                 <div className="p-6">
-                                    <div className="space-y-4">
-                                        {topProducts.map((product, index) => (
-                                            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                                <div className="flex items-center space-x-4">
-                                                    <img
-                                                        className="h-12 w-12 rounded-lg object-cover shadow-sm"
-                                                        src={product.image}
-                                                        alt={product.name}
-                                                    />
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                                                        <p className="text-sm text-gray-500">{product.sales} ventes</p>
+                                    {loading ? (
+                                        // Skeleton pour produits
+                                        <div className="space-y-4">
+                                            {Array.from({ length: 4 }).map((_, index) => (
+                                                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg animate-pulse">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+                                                        <div>
+                                                            <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
+                                                            <div className="h-3 bg-gray-200 rounded w-20"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                                                        <div className="h-3 bg-gray-200 rounded w-12"></div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm font-semibold text-gray-900">
-                                                        {formatPrice(product.revenue)}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">Total</p>
+                                            ))}
+                                        </div>
+                                    ) : topProducts.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {topProducts.map((product, index) => (
+                                                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                    <div className="flex items-center space-x-4">
+                                                        <img
+                                                            className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                                            src={product.image}
+                                                            alt={product.name}
+                                                            onError={(e) => {
+                                                                e.target.src = '/placeholder-product.png'
+                                                            }}
+                                                        />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                                                            <p className="text-sm text-gray-500">{product.sales} ventes</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-semibold text-gray-900">
+                                                            {formatPrice(product.revenue)}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">Total</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <ShoppingBagIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                            <p>Aucun produit en vente</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
