@@ -21,7 +21,7 @@ const ProductDetail = () => {
   const { id } = useParams()
   const { addToCart, toggleWishlist, isInWishlist } = useCart()
   const { showCartNotification, showSuccess, showError } = useNotification() // legacy notifications (cart special)
-  const { showToast } = useToast()
+  const { success: showToastSuccess, error: showToastError, info: showToastInfo } = useToast()
   const [product, setProduct] = useState(null)
   const [relatedProducts, setRelatedProducts] = useState([])
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -43,7 +43,7 @@ const ProductDetail = () => {
     rating: p.rating,
     reviews: p.reviews_count,
     inStock: p.in_stock,
-    stockCount: p.stock_count ?? 1,
+  stockCount: (p.stock ?? p.stock_count ?? p.inventory ?? 0),
     isNew: p.is_new,
     badge: p.is_new ? 'Nouveau' : null,
     description: p.description,
@@ -113,34 +113,19 @@ const ProductDetail = () => {
   }
 
   const handleAddToCart = async () => {
-  if (!product?.inStock || isAddingToCart) return
-    
+    if (!product?.inStock || isAddingToCart) return
     setIsAddingToCart(true)
-    
     try {
-      // Si l'API est disponible, utiliser la méthode du service
-      if (api.cart && api.cart.addItem) {
-        try {
-          await api.cart.addItem(product.id, quantity);
-          showToast({ type: 'success', title: 'Ajouté au panier', description: `${quantity} x ${product.name}` })
-        } catch (apiError) {
-          console.error('API error:', apiError);
-          // En cas d'erreur API, utiliser la méthode locale
-          const success = addToCart(product, quantity);
-          if (success) {
-            showToast({ type: 'success', title: 'Ajouté au panier (local)', description: `${quantity} x ${product.name}` })
-          }
-        }
+      const res = await addToCart(product, quantity)
+      if (res.ok) {
+        const mode = res.localOnly ? ' (local)' : ''
+        showToastSuccess(`Ajouté au panier${mode} - ${quantity} x ${product.name}`)
       } else {
-        // Méthode locale de secours
-        const success = addToCart(product, quantity);
-        if (success) {
-          showToast({ type: 'success', title: 'Ajouté au panier', description: `${quantity} x ${product.name}` })
-        }
+        showToastError('Erreur panier - Ajout impossible')
       }
     } catch (error) {
       console.error('Erreur lors de l\'ajout au panier:', error)
-      showToast({ type: 'error', title: 'Erreur panier', description: 'Ajout impossible' })
+      showToastError('Erreur panier - Ajout impossible')
     } finally {
       setIsAddingToCart(false)
     }
@@ -150,9 +135,9 @@ const ProductDetail = () => {
     if (!product) return
     const res = await toggleWishlist(product)
     if (res?.attached) {
-      showToast({ type: 'info', title: 'Favori ajouté', description: product.name })
+      showToastInfo(`Favori ajouté - ${product.name}`)
     } else {
-      showToast({ type: 'info', title: 'Favori retiré', description: product.name })
+      showToastInfo(`Favori retiré - ${product.name}`)
     }
   }
 

@@ -193,7 +193,7 @@ const DashboardLayout = ({
                                             />
                                         ) : null}
                                         <button 
-                                            className={`h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm ${
+                                            className={`h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm ${
                                                 user?.avatar || user?.profile_image ? 'hidden' : 'flex'
                                             }`}
                                             style={user?.avatar || user?.profile_image ? {display: 'none'} : {}}

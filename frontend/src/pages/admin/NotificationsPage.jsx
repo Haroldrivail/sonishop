@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { api } from '../../api/client'
 import EmptyState from '../../components/admin/EmptyState'
 import {
     BellIcon,
@@ -17,7 +18,6 @@ import {
     CurrencyDollarIcon,
     CogIcon
 } from '../../components/icons'
-import { api } from '../../api/client'
 
 // Helpers to map backend notification data (Laravel database notifications)
 const mapNotification = (n) => {
@@ -158,7 +158,7 @@ const NotificationsPage = () => {
         setLoading(true)
         setError(null)
         try {
-            const { data } = await api.get('/notifications', { params: { page } })
+            const { data } = await api.notifications.getAll({ page })
             // ApiResponse => { status:'ok', data: { current_page, data: [...], last_page, per_page, total, ... } }
             const payload = data?.data || {}
             const list = (payload.data || []).map(mapNotification)
@@ -175,18 +175,18 @@ const NotificationsPage = () => {
     const markAsRead = async (id) => {
         // Optimistic update
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-        try { await api.post(`/notifications/${id}/read`) } catch { /* rollback? omitted for brevity */ }
+        try { await api.notifications.markAsRead(id) } catch { /* rollback? omitted for brevity */ }
     }
 
     const markAllAsRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-        try { await api.post('/notifications/read-all') } catch { /* ignore */ }
+        try { await api.notifications.markAllAsRead() } catch { /* ignore */ }
     }
 
     const deleteNotification = async (id) => {
         const prev = notifications
         setNotifications(p => p.filter(n => n.id !== id))
-        try { await api.delete(`/notifications/${id}`) } catch { setNotifications(prev) }
+        try { await api.notifications.delete(id) } catch { setNotifications(prev) }
     }
 
     const deleteAllRead = async () => {
@@ -198,7 +198,7 @@ const NotificationsPage = () => {
             // Batch delete sequentially (could be optimized server-side with bulk endpoint)
             for (const id of toDelete) {
                 // eslint-disable-next-line no-await-in-loop
-                await api.delete(`/notifications/${id}`)
+                await api.notifications.delete(id)
             }
         } catch {
             setNotifications(prev) // rollback

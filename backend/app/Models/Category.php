@@ -23,7 +23,7 @@ class Category extends Model
     {
         $img = $this->image ?? ($this->images[0] ?? null);
         if (! $img) {
-            return '/categorie.png';
+            return rtrim(config('app.frontend_url'), '/') . '/Categorie.png';
         }
 
         // If stored already as absolute URL (starts with http), return as-is

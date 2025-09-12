@@ -43,7 +43,7 @@ const Orders = () => {
         name: it.name || it.product_name || 'Produit',
         price: Number(it.price || it.unit_price || 0),
         quantity: it.quantity || it.qty || 1,
-        image: it.image || it.image_url || it.thumbnail || '/placeholder-product.png'
+        image: it.image_url || it.image || it.thumbnail || '/placeholder-product.png'
       })) : [],
       shipping: o.shipping_info ? {
         address: [o.shipping_info.quartier || o.shipping_info.address, o.shipping_info.city, o.shipping_info.country].filter(Boolean).join(', '),

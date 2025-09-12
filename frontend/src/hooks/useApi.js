@@ -15,15 +15,44 @@ export const useProducts = (filters = {}) => {
       const result = await productService.getProducts(filters)
 
       if (result.success) {
-        setProducts(result.data.data || [])
-        setPagination({
-          currentPage: result.data.current_page,
-          lastPage: result.data.last_page,
-          total: result.data.total,
-          perPage: result.data.per_page,
-          from: result.data.from,
-          to: result.data.to,
-        })
+        // Supporte plusieurs formes: {status:'ok', data:{ data:[...] }} ou { data:[...] }
+        const root = result.data
+        const collection = Array.isArray(root)
+          ? root
+          : (Array.isArray(root.data) ? root.data : (Array.isArray(root.data?.data) ? root.data.data : []))
+
+        // Normalisation produits minimale (assure image disponible)
+        const normalized = collection.map(p => ({
+          ...p,
+          image: p.image_url || p.image || '/placeholder-product.png'
+        }))
+
+        setProducts(normalized)
+
+        const metaSource = Array.isArray(root) ? null : (
+          root.meta || root // laravel paginator expose meta directement sur l'objet retourné ici
+        )
+
+        if (metaSource && (metaSource.current_page || root.current_page)) {
+          const m = metaSource
+          setPagination({
+            currentPage: m.current_page ?? root.current_page,
+            lastPage: m.last_page ?? root.last_page,
+            total: m.total ?? root.total ?? normalized.length,
+            perPage: m.per_page ?? root.per_page ?? normalized.length,
+            from: m.from ?? root.from ?? 1,
+            to: m.to ?? root.to ?? normalized.length,
+          })
+        } else {
+          setPagination({
+            currentPage: 1,
+            lastPage: 1,
+            total: normalized.length,
+            perPage: normalized.length,
+            from: 1,
+            to: normalized.length,
+          })
+        }
       } else {
         setError(result.error)
       }

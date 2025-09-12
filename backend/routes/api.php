@@ -94,17 +94,27 @@ Route::middleware(['auth:sanctum','verified'])->group(function () {
 
 Route::middleware(['auth:sanctum','role:admin'])->prefix('admin')->group(function () {
     Route::get('ping', fn() => response()->json(['message' => 'Admin access granted']));
-    Route::patch('categories/{category}/image', [CategoryController::class, 'updateImage']);
+
+    // Routes complètes pour les catégories
+    Route::get('categories', [CategoryController::class, 'index']);
+    Route::get('categories/{category}', [CategoryController::class, 'show']);
     Route::post('categories', [CategoryController::class, 'store']);
     Route::put('categories/{category}', [CategoryController::class, 'update']);
     Route::patch('categories/{category}', [CategoryController::class, 'update']);
     Route::delete('categories/{category}', [CategoryController::class, 'destroy']);
+    Route::patch('categories/{category}/image', [CategoryController::class, 'updateImage']);
     Route::post('categories/bulk/delete', [CategoryController::class, 'bulkDestroy']);
-    Route::patch('products/{product}/image', [ProductController::class, 'updateImage']);
+
+    // Routes complètes pour les produits
+    Route::get('products', [ProductController::class, 'index']);
+    Route::get('products/{product}', [ProductController::class, 'show']);
     Route::post('products', [ProductController::class, 'store']);
     Route::put('products/{product}', [ProductController::class, 'update']);
     Route::patch('products/{product}', [ProductController::class, 'update']);
     Route::delete('products/{product}', [ProductController::class, 'destroy']);
+    Route::patch('products/{product}/image', [ProductController::class, 'updateImage']);
+    Route::patch('products/{product}/images', [ProductController::class, 'updateImages']);
+    Route::patch('products/{product}/stock', [ProductController::class, 'updateStock']);
     Route::get('analytics/summary', [AnalyticsController::class, 'summary']);
     Route::get('analytics/export/csv', [AnalyticsController::class, 'exportCsv']);
     Route::get('analytics/export/pdf', [AnalyticsController::class, 'exportPdf']);

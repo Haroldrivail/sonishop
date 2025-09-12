@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -16,6 +16,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->bigInteger('price')->default(0);
             $table->bigInteger('sale_price')->nullable();
+            $table->integer('stock')->default(0);
             $table->string('image')->nullable();
             $table->json('images')->nullable();
             $table->decimal('rating', 3, 2)->default(0);

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import EmptyState, { LoadingState, ErrorState } from '../../components/admin/EmptyState'
 import { api } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
+import LoadingState from '../../components/admin/LoadingState'
+import ErrorState from '../../components/admin/ErrorState'
+import EmptyState from '../../components/admin/EmptyState'
 import {
     DocumentTextIcon,
     ChartBarIcon,
@@ -14,7 +17,8 @@ import {
     PrinterIcon,
     ShareIcon,
     TrendingUpIcon,
-    TrendingDownIcon
+    TrendingDownIcon,
+    ArrowPathIcon
 } from '../../components/icons'
 
 const ReportsManagement = () => {
@@ -22,8 +26,11 @@ const ReportsManagement = () => {
     const [dateRange, setDateRange] = useState('30days')
     const [reportFormat, setReportFormat] = useState('pdf')
     const [loading, setLoading] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
     const [error, setError] = useState(null)
     const [summary, setSummary] = useState(null)
+    
+    const { success: showSuccess, error: showError } = useToast()
 
     const reportTypes = [
         { id: 'sales', name: 'Ventes', icon: CurrencyDollarIcon, color: 'green' },
@@ -100,18 +107,42 @@ const ReportsManagement = () => {
         }
     }
 
-    const fetchSummary = useCallback(async () => {
-        setLoading(true); setError(null)
+    const fetchSummary = useCallback(async (isRefresh = false) => {
+        const controller = new AbortController()
+        
         try {
+            if (isRefresh) {
+                setRefreshing(true)
+            } else {
+                setLoading(true)
+            }
+            setError(null)
+
             const backendRange = translateRange(dateRange)
-            const { data } = await api.get('/admin/analytics/summary', { params: { range: backendRange } })
+            const { data } = await api.admin.analytics.getSummary({ 
+                range: backendRange,
+                signal: controller.signal 
+            })
+            
             setSummary(data)
+            
+            if (isRefresh) {
+                showSuccess('Rapport actualisé')
+            }
         } catch (e) {
-            setError(e)
+            if (e.name !== 'AbortError') {
+                const errorMsg = e.response?.data?.message || e.message || 'Erreur de chargement du rapport'
+                setError(errorMsg)
+                showError(errorMsg)
+                console.error('❌ Reports fetch error:', e)
+            }
         } finally {
             setLoading(false)
+            setRefreshing(false)
         }
-    }, [dateRange])
+        
+        return () => controller.abort()
+    }, [dateRange, showSuccess, showError])
 
     useEffect(() => { fetchSummary() }, [fetchSummary])
 
@@ -487,6 +518,14 @@ const ReportsManagement = () => {
                     <p className="text-gray-600 mt-1">Tableau de bord analytique SoniShop</p>
                 </div>
                 <div className="flex space-x-2">
+                    <button
+                        onClick={() => fetchSummary(true)}
+                        disabled={refreshing}
+                        className="inline-flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                        <ArrowPathIcon className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Actualisation...' : 'Actualiser'}
+                    </button>
                     <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                         <EyeIcon className="h-4 w-4 mr-2" />
                         Aperçu

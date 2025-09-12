@@ -4,7 +4,7 @@ import AdvancedFilters from '../components/filters/AdvancedFilters'
 import SearchBar from '../components/search/SearchBar'
 import ProductGrid from '../components/products/ProductGrid'
 import Pagination from '../components/pagination/Pagination'
-import { api } from '../api/client'
+import { productService } from '../api/productService'
 
 // NOTE: Ancienne logique de filtrage/pagination client remplacée par pagination & filtrage serveur.
 
@@ -86,86 +86,55 @@ const Products = () => {
     }
   }, [updateFilters, resetPagination, setSearchParams])
 
-  // Charger les produits depuis l'API
+  // Charger les produits depuis l'API via service centralisé
   useEffect(() => {
     const fetchProducts = async () => {
-      setLoading(true);
+      setLoading(true)
       try {
-        // Mapping tri -> backend
         let sort_by, sort_direction
         switch (filters.sortBy) {
-          case 'price-asc':
-            sort_by = 'price'; sort_direction = 'asc'; break
-          case 'price-desc':
-            sort_by = 'price'; sort_direction = 'desc'; break
-          case 'name-asc':
-            sort_by = 'name'; sort_direction = 'asc'; break
-          case 'name-desc':
-            sort_by = 'name'; sort_direction = 'desc'; break
-          case 'rating':
-            sort_by = 'rating'; sort_direction = 'desc'; break
-          case 'newest':
-            sort_by = 'created_at'; sort_direction = 'desc'; break
-          case 'popular':
-            sort_by = 'sales'; sort_direction = 'desc'; break
-          default:
-            // pas de tri explicite
-            break
+          case 'price-asc': sort_by = 'price'; sort_direction = 'asc'; break
+          case 'price-desc': sort_by = 'price'; sort_direction = 'desc'; break
+          case 'name-asc': sort_by = 'name'; sort_direction = 'asc'; break
+          case 'name-desc': sort_by = 'name'; sort_direction = 'desc'; break
+          case 'rating': sort_by = 'rating'; sort_direction = 'desc'; break
+          case 'newest': sort_by = 'created_at'; sort_direction = 'desc'; break
+          case 'popular': sort_by = 'sales'; sort_direction = 'desc'; break
+          default: break
         }
 
-        const params = {
+        const result = await productService.getProducts({
           page: currentPage,
-          per_page: itemsPerPage,
-          ...(sort_by ? { sort_by } : {}),
-          ...(sort_direction ? { sort_direction } : {}),
-          q: filters.searchTerm || undefined, // backend attend 'q'
-          category: filters.category !== 'all' ? filters.category : undefined,
-        }
+            per_page: itemsPerPage,
+            sort_by, sort_direction,
+            q: filters.searchTerm || undefined,
+            category: filters.category !== 'all' ? filters.category : undefined,
+        })
 
-        const response = await api.products.getAll(params)
-        if (response.data) {
-          // Réponse paginator native Laravel: { data, current_page, last_page, per_page, total, ... }
-          const root = response.data
-          const apiItems = root.data || []
-          const mapped = apiItems.map(p => ({
-            id: p.id,
-            name: p.name,
-            category: p.category?.slug || p.category?.name || p.category_id,
-            price: p.price,
-            salePrice: p.sale_price,
-            image: p.image_url || p.image,
-            description: p.description,
-            rating: p.rating,
-            reviews: p.reviews_count,
-            inStock: p.in_stock,
-            isNew: p.is_new,
-            freeShipping: p.free_shipping,
-            sales: p.sales,
-          }))
-          setProducts(mapped)
-          const meta = {
-            total: root.total,
-            last_page: root.last_page,
-            current_page: root.current_page,
-            per_page: root.per_page,
-          }
-          setTotalProducts(meta.total || mapped.length)
-          setPaginationMeta(meta)
+        if (result.success) {
+          const { items, pagination } = result.data
+          setProducts(items)
+          setPaginationMeta({
+            total: pagination.total,
+            last_page: pagination.last_page,
+            current_page: pagination.current_page,
+            per_page: pagination.per_page,
+          })
+          setTotalProducts(pagination.total)
         } else {
-          console.warn('Réponse API vide, utilisation fallback minimal')
+          setError(result.error)
           setProducts(minimalFallback)
         }
       } catch (err) {
-        console.error('Erreur lors du chargement des produits:', err);
-        setError('Impossible de charger les produits. Veuillez réessayer plus tard.');
-        setProducts(minimalFallback);
+        console.error('Erreur lors du chargement des produits:', err)
+        setError('Impossible de charger les produits. Veuillez réessayer plus tard.')
+        setProducts(minimalFallback)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    fetchProducts();
-  }, [currentPage, itemsPerPage, filters]);
+    }
+    fetchProducts()
+  }, [currentPage, itemsPerPage, filters])
 
   if (loading) {
     return (

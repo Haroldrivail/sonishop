@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
 use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -50,12 +50,13 @@ class ProductSeeder extends Seeder
         // Créer des produits
         $products = [
             [
+                'sku' => 'IPH15PM',
                 'name' => 'iPhone 15 Pro Max',
                 'slug' => 'iphone-15-pro-max',
                 'description' => 'Le smartphone le plus avancé d\'Apple avec puce A17 Pro et caméra révolutionnaire.',
                 'price' => 915000,
                 'sale_price' => 850000,
-                'sku' => 'IPH15PM',
+                'stock' => 15,
                 'category_id' => $smartphonesCategory->id,
                 'in_stock' => true,
                 'is_new' => true,
@@ -65,12 +66,13 @@ class ProductSeeder extends Seeder
                 'reviews_count' => 324,
             ],
             [
+                'sku' => 'SGS24U',
                 'name' => 'Samsung Galaxy S24 Ultra',
                 'slug' => 'samsung-galaxy-s24-ultra',
                 'description' => 'Smartphone Samsung avec S Pen intégré et caméra de 200MP.',
                 'price' => 825000,
                 'sale_price' => 750000,
-                'sku' => 'SGS24U',
+                'stock' => 15,
                 'category_id' => $smartphonesCategory->id,
                 'in_stock' => true,
                 'is_new' => true,
@@ -80,12 +82,13 @@ class ProductSeeder extends Seeder
                 'reviews_count' => 256,
             ],
             [
+                'sku' => 'MBPM3',
                 'name' => 'MacBook Pro M3',
                 'slug' => 'macbook-pro-m3',
                 'description' => 'Ordinateur portable professionnel avec puce M3 Pro pour les créatifs.',
                 'price' => 1635000,
                 'sale_price' => 1200000,
-                'sku' => 'MBPM3',
+                'stock' => 15,
                 'category_id' => $ordinateursCategory->id,
                 'in_stock' => true,
                 'is_new' => false,
@@ -95,12 +98,13 @@ class ProductSeeder extends Seeder
                 'reviews_count' => 156,
             ],
             [
+                'sku' => 'IPADPRO129',
                 'name' => 'iPad Pro 12.9"',
                 'slug' => 'ipad-pro-129',
                 'description' => 'Tablette iPad Pro avec écran Liquid Retina XDR et puce M2.',
                 'price' => 785000,
                 'sale_price' => 720000,
-                'sku' => 'IPADPRO129',
+                'stock' => 15,
                 'category_id' => $tablettesCategory->id,
                 'in_stock' => true,
                 'is_new' => false,
@@ -110,12 +114,13 @@ class ProductSeeder extends Seeder
                 'reviews_count' => 89,
             ],
             [
+                'sku' => 'AIRPRO2',
                 'name' => 'AirPods Pro 2',
                 'slug' => 'airpods-pro-2',
                 'description' => 'Écouteurs sans fil avec réduction de bruit adaptative.',
                 'price' => 185000,
                 'sale_price' => 165000,
-                'sku' => 'AIRPRO2',
+                'stock' => 15,
                 'category_id' => $accessoiresCategory->id,
                 'in_stock' => true,
                 'is_new' => false,

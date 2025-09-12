@@ -1,40 +1,87 @@
-import React, { useState, useEffect } from 'react'
-import EmptyState, { LoadingState, ErrorState } from '../../components/admin/EmptyState'
-import { apiClient } from '../../api/client'
-import ENDPOINTS from '../../api/endpoints'
+import React, { useState, useEffect, useCallback } from 'react'
+import { api } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
+import EmptyState from '../../components/admin/EmptyState'
 import {
     ChartBarIcon,
     TrendingUpIcon,
     CalendarIcon,
     DownloadIcon,
-    EyeIcon
+    EyeIcon,
+    ArrowPathIcon
 } from '../../components/icons'
 
 const Analytics = () => {
     const [timeRange, setTimeRange] = useState('30d')
     const [chartType, setChartType] = useState('revenue')
     const [loading, setLoading] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
     const [error, setError] = useState(null)
-    const [analytics, setAnalytics] = useState({ days: [], totals: { revenue: 0, orders: 0, customers: 0, avg_order_value: 0 }, top_products: [], categories: [] })
+    const [analytics, setAnalytics] = useState({ 
+        days: [], 
+        totals: { revenue: 0, orders: 0, customers: 0, avg_order_value: 0 }, 
+        top_products: [], 
+        categories: [] 
+    })
+    const { success: showSuccess, error: showError } = useToast()
 
-    // Chargement des données dynamiques
-    useEffect(() => {
+    // Chargement des données dynamiques avec callback optimisé
+    const fetchAnalytics = useCallback(async (isRefresh = false) => {
         const controller = new AbortController()
-        async function fetchAnalytics() {
-            setLoading(true)
-            setError(null)
-            try {
-                const { data } = await apiClient.get(ENDPOINTS.admin.analytics.summary, { params: { range: timeRange } })
-                setAnalytics(data)
-            } catch (e) {
-                if (e.name !== 'AbortError') setError(e.message || 'Erreur de chargement')
-            } finally {
-                setLoading(false)
+        
+        try {
+            if (isRefresh) {
+                setRefreshing(true)
+            } else {
+                setLoading(true)
             }
+            setError(null)
+
+            // 🎯 Appel API restructuré avec gestion d'erreurs
+            const { data } = await api.admin.analytics.getSummary({ 
+                range: timeRange,
+                signal: controller.signal 
+            })
+            
+            // Normalisation des données avec placeholders
+            const normalizedData = {
+                days: data.days || [],
+                totals: {
+                    revenue: data.totals?.revenue || 0,
+                    orders: data.totals?.orders || 0,
+                    customers: data.totals?.customers || 0,
+                    avg_order_value: data.totals?.avg_order_value || 0
+                },
+                top_products: (data.top_products || []).map(product => ({
+                    ...product,
+                    image_url: product.image_url || product.image || '/Produit.png' // 🖼️ Placeholder défini
+                })),
+                categories: data.categories || []
+            }
+            
+            setAnalytics(normalizedData)
+            
+            if (isRefresh) {
+                showSuccess('Données analytiques actualisées')
+            }
+        } catch (e) {
+            if (e.name !== 'AbortError') {
+                const errorMsg = e.message || 'Erreur de chargement des analytics'
+                setError(errorMsg)
+                showError(errorMsg)
+                console.error('❌ Analytics fetch error:', e)
+            }
+        } finally {
+            setLoading(false)
+            setRefreshing(false)
         }
-        fetchAnalytics()
+        
         return () => controller.abort()
-    }, [timeRange])
+    }, [timeRange, showSuccess, showError])
+
+    useEffect(() => {
+        fetchAnalytics()
+    }, [fetchAnalytics])
 
     // Catégories dynamiques (part de revenu)
     const categoryData = (analytics.categories || []).map((c, idx) => ({
@@ -146,6 +193,14 @@ const Analytics = () => {
                     <p className="text-gray-600">Analyse détaillée des performances de votre boutique</p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={() => fetchAnalytics(true)}
+                        disabled={refreshing}
+                        className="inline-flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                        <ArrowPathIcon className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Actualisation...' : 'Actualiser'}
+                    </button>
                     <select
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value)}
@@ -156,16 +211,6 @@ const Analytics = () => {
                     </select>
                     {loading && <span className="text-sm text-gray-500 self-center">Chargement...</span>}
                     {error && <span className="text-sm text-red-600 self-center">{error}</span>}
-                    <div className="flex gap-2">
-                        <button onClick={() => window.open(`/api/admin/analytics/export/csv?range=${timeRange}`,'_blank')}
-                            className="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm">
-                            CSV
-                        </button>
-                        <button onClick={() => window.open(`/api/admin/analytics/export/pdf?range=${timeRange}`,'_blank')}
-                            className="inline-flex items-center px-3 py-2 bg-soni-navy text-white rounded-md hover:bg-soni-navy/90 text-sm">
-                            <DownloadIcon className="mr-1 h-4 w-4" /> PDF
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -347,36 +392,6 @@ const Analytics = () => {
                             })
                         })()}
                     </div>
-                </div>
-            </div>
-
-            {/* Export & Reports */}
-            <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Rapports et Exports</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        <DownloadIcon className="w-8 h-8 text-soni-navy mr-3" />
-                        <div className="text-left">
-                            <p className="font-medium text-gray-900">Rapport des ventes</p>
-                            <p className="text-sm text-gray-600">Export PDF/Excel</p>
-                        </div>
-                    </button>
-
-                    <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        <ChartBarIcon className="w-8 h-8 text-soni-orange mr-3" />
-                        <div className="text-left">
-                            <p className="font-medium text-gray-900">Analyse des clients</p>
-                            <p className="text-sm text-gray-600">Rapport détaillé</p>
-                        </div>
-                    </button>
-
-                    <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        <EyeIcon className="w-8 h-8 text-green-600 mr-3" />
-                        <div className="text-left">
-                            <p className="font-medium text-gray-900">Performance produits</p>
-                            <p className="text-sm text-gray-600">Analyse approfondie</p>
-                        </div>
-                    </button>
                 </div>
             </div>
         </div>

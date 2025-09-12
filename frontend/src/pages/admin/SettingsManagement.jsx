@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
     CogIcon,
     UserIcon,
@@ -15,17 +15,22 @@ import {
     CheckIcon,
     XMarkIcon,
     EyeIcon,
-    EyeSlashIcon
+    EyeSlashIcon,
+    ArrowPathIcon
 } from '../../components/icons'
-import api from '../../api/client'
+import { api } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
 import EmptyState from '../../components/admin/EmptyState'
 
 const SettingsManagement = () => {
     const [activeTab, setActiveTab] = useState('general')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [refreshing, setRefreshing] = useState(false)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState(null)
+    
+    const { success: showSuccess, error: showError } = useToast()
     
     // Settings data states
     const [generalSettings, setGeneralSettings] = useState({
@@ -141,14 +146,22 @@ const SettingsManagement = () => {
             if (failed && failed === results.length) {
                 throw new Error('Toutes les requêtes ont échoué')
             } else if (failed) {
-                // Partial failure: surface a non-blocking warning in console only
                 console.warn('Certaines sections n\'ont pas pu être chargées')
             }
+            
+            if (isRefresh) {
+                showSuccess('Paramètres actualisés')
+            }
         } catch (err) {
-            console.error('Erreur lors du chargement des paramètres:', err)
-            setError('Impossible de charger les paramètres')
+            if (err.name !== 'AbortError') {
+                console.error('❌ Settings fetch error:', err)
+                const errorMsg = err.response?.data?.message || err.message || 'Impossible de charger les paramètres'
+                setError(errorMsg)
+                showError(errorMsg)
+            }
         } finally {
             setLoading(false)
+            setRefreshing(false)
         }
     }
 

@@ -77,22 +77,27 @@ export const api = {
 
   // Products
   products: {
-  getAll: (params) => apiClient.get(ENDPOINTS.products.list, { params }),
-  getById: (id) => apiClient.get(ENDPOINTS.products.detail(id)),
-  getReviews: (productId) => apiClient.get(ENDPOINTS.products.reviews(productId)),
-  addReview: (productId, review) => apiClient.post(ENDPOINTS.products.reviews(productId), review),
-  create: (data) => apiClient.post(ENDPOINTS.products.list, data),
-  update: (id, data) => apiClient.put(ENDPOINTS.products.detail(id), data),
-  delete: (id) => apiClient.delete(ENDPOINTS.products.detail(id)),
+    getAll: (params) => apiClient.get(ENDPOINTS.products.list, { params }),
+    getById: (id) => apiClient.get(ENDPOINTS.products.detail(id)),
+    getReviews: (productId) => apiClient.get(ENDPOINTS.products.reviews(productId)),
+    addReview: (productId, review) => apiClient.post(ENDPOINTS.products.reviews(productId), review),
+    create: (data) => apiClient.post('/admin/products', data),
+    update: (id, data) => apiClient.put(`/admin/products/${id}`, data),
+    delete: (id) => apiClient.delete(`/admin/products/${id}`),
+    updateImage: (id, data) => apiClient.patch(`/admin/products/${id}/image`, data),
+    updateImages: (id, data) => apiClient.patch(`/admin/products/${id}/images`, data),
+    updateStock: (id, stock) => apiClient.patch(`/admin/products/${id}/stock`, { stock }),
   },
 
   // Categories
   categories: {
-  getAll: () => apiClient.get(ENDPOINTS.categories.list),
-  getById: (id) => apiClient.get(ENDPOINTS.categories.detail(id)),
-  create: (data) => apiClient.post(ENDPOINTS.categories.list, data),
-  update: (id, data) => apiClient.put(ENDPOINTS.categories.detail(id), data),
-  delete: (id) => apiClient.delete(ENDPOINTS.categories.detail(id)),
+    getAll: () => apiClient.get(ENDPOINTS.categories.list),
+    getById: (id) => apiClient.get(ENDPOINTS.categories.detail(id)),
+    create: (data) => apiClient.post('/admin/categories', data),
+    update: (id, data) => apiClient.put(`/admin/categories/${id}`, data),
+    delete: (id) => apiClient.delete(`/admin/categories/${id}`),
+    updateImage: (id, data) => apiClient.patch(`/admin/categories/${id}/image`, data),
+    bulkDelete: (ids) => apiClient.post('/admin/categories/bulk/delete', { ids }),
   },
 
   // Cart
@@ -135,7 +140,7 @@ export const api = {
 
   // Notifications
   notifications: {
-  getAll: () => apiClient.get(ENDPOINTS.notifications.list),
+  getAll: (params) => apiClient.get(ENDPOINTS.notifications.list, { params }),
   markAsRead: (id) => apiClient.post(ENDPOINTS.notifications.markRead(id)),
   markAllAsRead: () => apiClient.post(ENDPOINTS.notifications.markAll),
   delete: (id) => apiClient.delete(ENDPOINTS.notifications.detail(id)),
@@ -153,9 +158,17 @@ export const api = {
 
   // File uploads
   uploads: {
-    upload: (file) => {
+    upload: (formData) => {
+      return apiClient.post(ENDPOINTS.uploads.upload, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    },
+    uploadToFolder: (file, folder) => {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('folder', folder)
       return apiClient.post(ENDPOINTS.uploads.upload, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -164,9 +177,9 @@ export const api = {
     },
     uploadAvatar: (file) => {
       const formData = new FormData()
-  // Backend renvoie 422 "The file field is required." => champ attendu: 'file'
-  formData.append('file', file)
-  formData.append('folder', 'avatars')
+      // Backend renvoie 422 "The file field is required." => champ attendu: 'file'
+      formData.append('file', file)
+      formData.append('folder', 'avatars')
       return apiClient.post(ENDPOINTS.uploads.avatar, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -186,6 +199,20 @@ export const api = {
   admin: {
     orders: {
       getAll: (params) => apiClient.get(ENDPOINTS.admin.orders.list, { params }),
+  updateStatus: (id, status) => apiClient.patch(ENDPOINTS.admin.orders.updateStatus(id), { status }),
+  refund: (id, amount) => apiClient.post(ENDPOINTS.admin.orders.refund(id), { amount }),
+  addNote: (id, content) => apiClient.post(ENDPOINTS.admin.orders.addNote(id), { content }),
+  resendEmail: (id) => apiClient.post(ENDPOINTS.admin.orders.resendEmail(id)),
+  bulkStatus: (ids, status) => apiClient.post(ENDPOINTS.admin.orders.bulkStatus, { ids, status }),
+  bulkCancel: (ids) => apiClient.post(ENDPOINTS.admin.orders.bulkCancel, { ids }),
+    },
+    analytics: {
+      getSummary: (params) => apiClient.get(ENDPOINTS.admin.analytics.summary, { params }),
+      exportCsv: (params) => apiClient.get(ENDPOINTS.admin.analytics.exportCsv, { params }),
+      exportPdf: (params) => apiClient.get(ENDPOINTS.admin.analytics.exportPdf, { params }),
+    },
+    customers: {
+      getAll: (params) => apiClient.get('/admin/customers', { params }),
     },
     settings: {
       getGeneralSettings: () => USE_MOCK_SETTINGS ? mockSettingsAPI.getGeneralSettings() : apiClient.get(ENDPOINTS.admin.settings.general),

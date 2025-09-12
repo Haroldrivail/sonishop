@@ -246,20 +246,25 @@ export const CartProvider = ({ children }) => {
   }, [wishlist])
 
   // Fonctions du panier
-  const addToCart = async (product, quantity = 1) => { // (b)
-    if (!product) return false
-    if (isAuthenticated()) {
-      try {
-        await api.cart.addItem(product.id, quantity)
-        await refreshRemoteCart() // ce call mettra à jour via SET_REMOTE_CART
-        return true
-      } catch (err) {
-        console.warn('Erreur API addToCart, fallback local', err)
-        enqueueOp({ type: 'add', productId: product.id, quantity })
-      }
+  const addToCart = async (product, quantity = 1) => { // (b) refactor: réponse normalisée
+    if (!product) return { ok: false, reason: 'missing-product' }
+    // Optimistic local update immédiat (améliore perception) si non authentifié
+    if (!isAuthenticated()) {
+      dispatch({ type: 'ADD_ITEM', payload: { product, quantity } })
+      return { ok: true, localOnly: true }
     }
-    dispatch({ type: 'ADD_ITEM', payload: { product, quantity } })
-    return true
+    // Authenticated: tentative API puis fallback queue
+    try {
+      // Optimistic: on ajoute local AVANT réponse pour réactivité immédiate
+      dispatch({ type: 'ADD_ITEM', payload: { product, quantity } })
+      await api.cart.addItem(product.id, quantity)
+      await refreshRemoteCart() // réalignement état serveur
+      return { ok: true }
+    } catch (err) {
+      console.warn('Erreur API addToCart, mise en queue & conservation optimistic', err)
+      enqueueOp({ type: 'add', productId: product.id, quantity })
+      return { ok: true, queued: true }
+    }
   }
 
   const removeFromCart = async (productId) => {
@@ -335,8 +340,9 @@ export const CartProvider = ({ children }) => {
       setWishlist(prev => prev.find(i => i.id === product.id) ? prev : [...prev, product])
       return { attached: true, localOnly: true }
     }
-    const res = await api.wishlist.toggle(product.id)
-    const attached = res.data?.attached
+  const res = await api.wishlist.toggle(product.id)
+  // Réponse backend: { status:'ok', data:{ attached: bool, product_id: id }, meta:{} }
+  const attached = res.data?.data?.attached
     if (attached) {
       setWishlist(prev => prev.find(i => i.id === product.id) ? prev : [...prev, product])
     }
@@ -348,9 +354,9 @@ export const CartProvider = ({ children }) => {
       setWishlist(prev => prev.filter(item => item.id !== productId))
       return { attached: false, localOnly: true }
     }
-    const res = await api.wishlist.toggle(productId)
-    const attached = res.data?.attached
-    if (attached === false) {
+  const res = await api.wishlist.toggle(productId)
+  const attached = res.data?.data?.attached
+  if (attached === false) {
       setWishlist(prev => prev.filter(item => item.id !== productId))
     }
     return { attached }
@@ -367,8 +373,8 @@ export const CartProvider = ({ children }) => {
       return { attached: true, localOnly: true }
     }
     try {
-      const res = await api.wishlist.toggle(product.id)
-      const attached = res.data?.attached
+  const res = await api.wishlist.toggle(product.id)
+  const attached = res.data?.data?.attached
       if (attached === true) {
         setWishlist(prev => prev.find(i => i.id === product.id) ? prev : [...prev, product])
       } else if (attached === false) {

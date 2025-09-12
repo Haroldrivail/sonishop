@@ -2,31 +2,36 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Category;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use App\Http\Traits\ApiResponse;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
     use ApiResponse;
     public function index()
     {
-        $categories = Category::query()->get()->map(function (Category $c) {
-            return [
-                'id' => $c->id,
-                'name' => $c->name,
-                'slug' => $c->slug,
-                'description' => $c->description,
-                'image' => $c->image,
-                'image_url' => $c->image_url,
-                'images' => $c->images ?? [],
-            ];
-        });
+        // Charger le nombre de produits par catégorie pour l'affichage frontend
+        $categories = Category::query()
+            ->withCount('products')
+            ->get()
+            ->map(function (Category $c) {
+                return [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'slug' => $c->slug,
+                    'description' => $c->description,
+                    'image' => $c->image,
+                    'image_url' => $c->image_url,
+                    'images' => $c->images ?? [],
+                    'products_count' => $c->products_count, // utilisé par le frontend
+                ];
+            });
 
-    return $this->ok($categories);
+        return $this->ok($categories);
     }
 
     public function show(Category $category)

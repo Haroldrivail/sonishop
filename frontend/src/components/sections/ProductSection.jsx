@@ -143,7 +143,11 @@ const ProductSection = ({
                     isHovered ? 'opacity-100' : 'opacity-0'
                   }`}>
                     <button
-                      onClick={() => onAddToCart && onAddToCart(product)}
+                      onClick={async () => {
+                        if (!onAddToCart) return
+                        const res = await onAddToCart(product)
+                        // Optionnel: pas de toast ici (géré par parent) mais on pourrait utiliser res
+                      }}
                       disabled={!product.inStock}
                       className="w-full bg-soni-orange text-white py-2 px-4 rounded-lg hover:bg-soni-orange/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >

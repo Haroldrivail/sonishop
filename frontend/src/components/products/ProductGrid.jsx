@@ -16,10 +16,7 @@ import {
 const ProductGrid = ({ products }) => {
   const [viewMode, setViewMode] = useState('grid') // 'grid' ou 'list'
   const { addToCart, toggleWishlist, isInWishlist } = useCart()
-  const { showToast } = useToast()
-
-  const toastSuccess = (message) => showToast({ type: 'success', title: message })
-  const toastInfo = (message) => showToast({ type: 'info', title: message })
+  const { success: toastSuccess, info: toastInfo } = useToast()
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -53,9 +50,12 @@ const ProductGrid = ({ products }) => {
       ? Math.round(((product.price - product.salePrice) / product.price) * 100)
       : 0
 
-    const handleAddToCart = () => {
-      const success_add = addToCart(product)
-  if (success_add) toastSuccess(`${product.name} ajouté au panier`)
+    const handleAddToCart = async () => {
+      const res = await addToCart(product, 1)
+      if (res.ok) {
+        if (res.localOnly) toastSuccess(`${product.name} ajouté (local)`)
+        else toastSuccess(`${product.name} ajouté au panier`)
+      }
     }
 
     const handleToggleWishlist = async () => {
@@ -222,11 +222,11 @@ const ProductGrid = ({ products }) => {
           <button
             onClick={handleAddToCart}
             disabled={product.inStock === false || product.is_in_stock === false}
-            className="group w-full flex justify-center items-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform active:scale-[0.98] hover:cursor-pointer mb-2"
-            aria-label="Ajouter au panier"
+            className="group w-full flex justify-center items-center gap-2 py-3 sm:py-4 px-4 sm:px-6 border border-transparent text-sm sm:text-base font-semibold rounded-xl text-white bg-blue-800 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-soni-navy/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
+            aria-label={product.inStock === false || product.is_in_stock === false ? 'Rupture de stock' : 'Ajouter au panier'}
           >
-            <ShoppingCartIcon className="w-4 h-4" />
-            {(product.inStock === false || product.is_in_stock === false) ? 'Rupture' : 'Ajouter au panier'}
+            <ShoppingCartIcon className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="xs:inline">{(product.inStock === false || product.is_in_stock === false) ? 'Rupture' : 'Ajouter au panier'}</span>
           </button>
         </div>
       </div>

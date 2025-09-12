@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { api } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
 import EmptyState from '../../components/admin/EmptyState'
 import {
     UserIcon,
@@ -14,10 +16,9 @@ import {
     ShoppingBagIcon,
     CurrencyDollarIcon,
     ChevronUpIcon,
-    ChevronDownIcon
+    ChevronDownIcon,
+    ArrowPathIcon
 } from '../../components/icons'
-
-import { api } from '../../api/client'
 
 const CustomersManagement = () => {
     const [customers, setCustomers] = useState([])
@@ -26,6 +27,7 @@ const CustomersManagement = () => {
     const [total, setTotal] = useState(0)
     const [lastPage, setLastPage] = useState(1)
     const [loading, setLoading] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
     const [error, setError] = useState(null)
 
     const [searchTerm, setSearchTerm] = useState('')
@@ -33,8 +35,10 @@ const CustomersManagement = () => {
     const [sortBy, setSortBy] = useState('name')
     const [sortOrder, setSortOrder] = useState('asc')
     const [selectedCustomer, setSelectedCustomer] = useState(null)
+    
+    const { success: showSuccess, error: showError } = useToast()
 
-    const statuses = ['all', 'active', 'vip', 'new', 'inactive']
+    const statuses = ['all', 'active', 'new', 'inactive']
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -53,7 +57,6 @@ const CustomersManagement = () => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'active': return 'bg-green-100 text-green-800'
-            case 'vip': return 'bg-purple-100 text-purple-800'
             case 'new': return 'bg-blue-100 text-blue-800'
             case 'inactive': return 'bg-gray-100 text-gray-800'
             default: return 'bg-gray-100 text-gray-800'
@@ -63,7 +66,6 @@ const CustomersManagement = () => {
     const getStatusText = (status) => {
         switch (status) {
             case 'active': return 'Actif'
-            case 'vip': return 'VIP'
             case 'new': return 'Nouveau'
             case 'inactive': return 'Inactif'
             default: return status
@@ -118,17 +120,33 @@ const CustomersManagement = () => {
     )
 
     const totalCustomers = total
-    const activeCustomers = customers.filter(c => c.status === 'active' || c.status === 'vip').length
-    const vipCustomers = customers.filter(c => c.status === 'vip').length
+    const activeCustomers = customers.filter(c => c.status === 'active').length
     const totalRevenue = customers.reduce((sum, c) => sum + c.total_spent, 0)
 
-    const fetchCustomers = useCallback(async () => {
-        setLoading(true); setError(null)
+    const fetchCustomers = useCallback(async (isRefresh = false) => {
+        const controller = new AbortController()
+        
         try {
-            const { data } = await api.get('/admin/customers', { params: { page, per_page: perPage, search: searchTerm || undefined, status: filterStatus !== 'all' ? filterStatus : undefined } })
+            if (isRefresh) {
+                setRefreshing(true)
+            } else {
+                setLoading(true)
+            }
+            setError(null)
+
+            const { data } = await api.admin.customers.getAll({ 
+                page, 
+                per_page: perPage, 
+                search: searchTerm || undefined, 
+                status: filterStatus !== 'all' ? filterStatus : undefined,
+                signal: controller.signal
+            })
+            
             const payload = data?.data || data
             const items = payload.items || []
             const meta = payload.pagination || {}
+            
+            // 🖼️ Gestion des avatars avec placeholder par défaut
             setCustomers(items.map(u => ({
                 id: u.id,
                 name: u.name,
@@ -142,16 +160,29 @@ const CustomersManagement = () => {
                 totalSpent: u.total_spent,
                 status: u.status,
                 lastOrder: u.last_order || null,
-                avatar: u.avatar || null,
+                avatar: u.avatar || null, // Le placeholder sera géré dans le rendu
             })))
+            
             setTotal(meta.total || items.length)
             setLastPage(meta.last_page || 1)
+            
+            if (isRefresh) {
+                showSuccess('Liste des clients actualisée')
+            }
         } catch (e) {
-            setError(e)
+            if (e.name !== 'AbortError') {
+                const errorMsg = e.response?.data?.message || e.message || 'Erreur de chargement des clients'
+                setError(errorMsg)
+                showError(errorMsg)
+                console.error('❌ Customers fetch error:', e)
+            }
         } finally {
             setLoading(false)
+            setRefreshing(false)
         }
-    }, [page, perPage, searchTerm, filterStatus])
+        
+        return () => controller.abort()
+    }, [page, perPage, searchTerm, filterStatus, showSuccess, showError])
 
     useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
@@ -168,10 +199,20 @@ const CustomersManagement = () => {
                     </h1>
                     <p className="text-gray-600 mt-1">Gérez votre base de clients SoniShop</p>
                 </div>
-                <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200">
-                    <UserIcon className="h-4 w-4 mr-2" />
-                    Ajouter un Client
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => fetchCustomers(true)}
+                        disabled={refreshing}
+                        className="inline-flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                        <ArrowPathIcon className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Actualisation...' : 'Actualiser'}
+                    </button>
+                    <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200">
+                        <UserIcon className="h-4 w-4 mr-2" />
+                        Ajouter un Client
+                    </button>
+                </div>
             </div>
             {error && <div className="text-red-600 text-sm">Erreur de chargement des clients.</div>}
             {loading && <div className="text-gray-500 text-sm">Chargement...</div>}
@@ -216,17 +257,6 @@ const CustomersManagement = () => {
                         </div>
                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                             <UserIcon className="h-6 w-6 text-green-600" />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">Clients VIP</p>
-                            <p className="text-xl font-bold text-purple-600">{vipCustomers}</p>
-                        </div>
-                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <UserIcon className="h-6 w-6 text-purple-600" />
                         </div>
                     </div>
                 </div>
@@ -320,11 +350,22 @@ const CustomersManagement = () => {
                                 <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
-                                            <img 
-                                                className="h-10 w-10 rounded-full object-cover" 
-                                                src={customer.avatar} 
-                                                alt={customer.name}
-                                            />
+                                            {customer.avatar ? (
+                                                <img 
+                                                    className="h-10 w-10 rounded-full object-cover" 
+                                                    src={customer.avatar}
+                                                    alt={customer.name}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none'
+                                                        e.target.nextSibling.style.display = 'flex'
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <div 
+                                                className={`h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white font-medium text-sm ${customer.avatar ? 'hidden' : 'flex'}`}
+                                            >
+                                                {customer.name?.charAt(0)?.toUpperCase() || 'U'}
+                                            </div>
                                             <div className="ml-4">
                                                 <div className="text-sm font-medium text-gray-900">{customer.name}</div>
                                                 <div className="text-sm text-gray-500 flex items-center">

@@ -1,13 +1,47 @@
 // Services pour les produits
 import { api } from './client'
+import { normalizeProductsResponse } from './normalizers'
 
 export const productService = {
   async getProducts(filters = {}) {
     try {
-      const response = await api.products.getAll(filters)
+      // Harmonisation des clés attendues par le backend
+      const {
+        searchTerm,
+        search,
+        q,
+        category,
+        page,
+        per_page,
+        sort_by,
+        sort_direction,
+        sort,
+        direction,
+        status,
+        ...rest
+      } = filters
+
+      const params = {
+        page: page ?? filters.currentPage ?? 1,
+        per_page: per_page ?? filters.perPage ?? filters.limit ?? 12,
+        // Priorité: q (déjà correct) sinon searchTerm/search
+        q: q ?? searchTerm ?? search ?? undefined,
+        category: category === 'all' ? undefined : category,
+        status: status === 'all' ? undefined : status,
+        sort_by: sort_by || sort || undefined,
+        sort_direction: sort_direction || direction || undefined,
+        ...rest
+      }
+
+      const response = await api.products.getAll(params)
+      const { items, pagination } = normalizeProductsResponse(response.data)
       return {
         success: true,
-        data: response.data
+        data: {
+          items,
+          pagination,
+          raw: response.data
+        }
       }
     } catch (error) {
       return {

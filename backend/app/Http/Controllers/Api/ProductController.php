@@ -82,6 +82,46 @@ class ProductController extends Controller
     }
 
     /**
+     * Update product images (multiple). Admin only.
+     */
+    public function updateImages(Request $request, Product $product)
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'images' => 'required|array|max:10', // Maximum 10 images
+            'images.*' => 'string|max:2048',
+            'primary_image_index' => 'nullable|integer|min:0',
+        ]);
+
+        $images = $data['images'];
+        $primaryIndex = $data['primary_image_index'] ?? 0;
+
+        // S'assurer que l'index primaire est valide
+        if ($primaryIndex >= count($images)) {
+            $primaryIndex = 0;
+        }
+
+        // Mettre l'image primaire en position 0
+        if ($primaryIndex > 0 && isset($images[$primaryIndex])) {
+            $primaryImage = $images[$primaryIndex];
+            unset($images[$primaryIndex]);
+            array_unshift($images, $primaryImage);
+        }
+
+        $product->images = array_values($images);
+        $product->image = $images[0] ?? null; // L'image principale est la première
+        $product->save();
+
+        return $this->ok([
+            'id' => $product->id,
+            'image' => $product->image,
+            'image_url' => $product->image_url,
+            'images' => $product->images ?? [],
+        ]);
+    }
+
+    /**
      * Store a new product (admin only).
      */
     public function store(Request $request)
@@ -96,6 +136,8 @@ class ProductController extends Controller
             'sale_price' => 'nullable|integer|min:0',
             'stock' => 'nullable|integer|min:0',
             'image' => 'nullable|string',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'string|max:2048',
             'category_id' => 'nullable|exists:categories,id',
             'status' => 'nullable|string', // front peut l'envoyer, on recalculera
         ]);
@@ -111,8 +153,16 @@ class ProductController extends Controller
             $data['slug'] = $slug;
         }
 
-    $fillable = ['name','slug','description','price','sale_price','image','category_id'];
-    $product = Product::create(array_intersect_key($data, array_flip($fillable)));
+        // Gestion des images multiples
+        if (isset($data['images']) && !empty($data['images'])) {
+            // Si on a des images multiples, la première devient l'image principale
+            if (empty($data['image'])) {
+                $data['image'] = $data['images'][0];
+            }
+        }
+
+        $fillable = ['name','slug','description','price','sale_price','image','images','category_id'];
+        $product = Product::create(array_intersect_key($data, array_flip($fillable)));
 
         // Stock géré en colonne séparée éventuellement
         if (array_key_exists('stock', $data)) {
@@ -122,7 +172,7 @@ class ProductController extends Controller
 
         $product->load('category');
         $product->append('image_url');
-    return $this->created($product);
+        return $this->created($product);
     }
 
     /**
@@ -140,8 +190,18 @@ class ProductController extends Controller
             'sale_price' => 'sometimes|nullable|integer|min:0',
             'stock' => 'sometimes|nullable|integer|min:0',
             'image' => 'sometimes|nullable|string',
+            'images' => 'sometimes|nullable|array|max:10',
+            'images.*' => 'string|max:2048',
             'category_id' => 'sometimes|nullable|exists:categories,id',
         ]);
+
+        // Gestion des images multiples
+        if (isset($data['images']) && !empty($data['images'])) {
+            // Si on a des images multiples, la première devient l'image principale
+            if (empty($data['image']) || !array_key_exists('image', $data)) {
+                $data['image'] = $data['images'][0];
+            }
+        }
 
         $product->fill($data);
         if (array_key_exists('stock', $data)) {
@@ -151,7 +211,7 @@ class ProductController extends Controller
 
         $product->load('category');
         $product->append('image_url');
-    return $this->ok($product);
+        return $this->ok($product);
     }
 
     /**
@@ -162,5 +222,29 @@ class ProductController extends Controller
         $this->authorize('delete', $product);
         $product->delete();
     return $this->ok(['message' => 'Deleted']);
+    }
+
+    /**
+     * PATCH /admin/products/{product}/stock
+     * Atomic admin stock adjustment route.
+     */
+    public function updateStock(Request $request, Product $product)
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'stock' => 'required|integer|min:0',
+        ]);
+
+        $product->stock = (int)$data['stock'];
+        // Optionally toggle in_stock flag for consumer convenience
+        $product->in_stock = $product->stock > 0;
+        $product->save();
+
+        return $this->ok([
+            'id' => $product->id,
+            'stock' => $product->stock,
+            'in_stock' => $product->in_stock,
+        ]);
     }
 }

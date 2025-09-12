@@ -70,7 +70,7 @@ const DashboardSidebar = ({
 
                 {/* Sidebar Mobile */}
                 <div className={`
-                    fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-soni-navy via-soni-navy to-soni-navy-dark 
+                    fixed inset-y-0 left-0 z-50 w-72 bg-blue-900/95 
                     shadow-2xl shadow-soni-navy/50 transform transition-all duration-300 ease-in-out lg:hidden
                     border-r border-soni-orange/20
                     ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -138,7 +138,7 @@ const SidebarContent = ({
                 <div className={`flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
                     {/* Logo SoniShop amélioré */}
                     <div className="relative">
-                        <div className="w-12 h-12 bg-gradient-to-br  rounded-2xl flex items-center justify-center">
+                        <div className="w-12 h-12  rounded-2xl flex items-center justify-center">
                             <Link to="/" className="text-xl font-bold">
                                 <img src="/sonitelecom_logo.png" alt="SoniShop" />
                             </Link>
